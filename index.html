@@ -3,13 +3,28 @@
 <html lang="en">
 
 <head>
+	<title>Matt Goose and Caro Wang CS112 final</title>
+	<script src = "index.js"></script>
+	<link rel = "stylesheet" href = "styles.css">
 
 </head>
 
-<body style="background-color: blue">
-	<h1 style="font-family: 'Comic Sans MS', 'Comic Sans'; color: white">CS112 Final Project: Wet Wet</h1>
-	<h2 style="font-family: 'Comic Sans MS', 'Comic Sans'; color: white">Matthew Goose and Caroline Wang</h1>
+<!-- cannot put shaders in a separate js file because the type must be a string-->
+<script id="test-shader" type = "frag-shader">
+	
+	precision mediump float;
 
+
+</script>
+
+<body onload = "main()">
+	<h1 >CS112 Final Project: Wet Wet</h1>
+	<h2 >Matthew Goose and Caroline Wang</h1>
+	
+	<div>
+		<canvas id="glCanvas" width="640" height="480"></canvas>
+	</div>
+		
 </body>
 
 </html>
