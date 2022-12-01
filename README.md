@@ -1,10 +1,10 @@
-# Matt Goose and Caro Wang CS112 Final
-
+# Matt Goose and Caro Wang CS112 Final Project
+Rendering Water Caustics using WebGL and 3D objects made in Blender
 
 ## Helpful Links
 [WebGL Water Demo](http://madebyevan.com/webgl-water) \
 [Evan Wallace Medium Article for Water Caustics](https://medium.com/@evanwallace/rendering-realtime-caustics-in-webgl-2a99a29a0b2c) \
-[Medium Article for a more general water demo](https://medium.com/@martinRenou/real-time-rendering-of-water-caustics-59cda1d74aa) /
+[Medium Article for a more general water demo](https://medium.com/@martinRenou/real-time-rendering-of-water-caustics-59cda1d74aa) \
 [WebGL Fundamentals tutorial](https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html) \
 [Mozilla WebGL Documentation](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Getting_started_with_WebGL) \
 [Youtube Tutorial for WebGL](https://youtu.be/kB0ZVUrI4Aw) \
