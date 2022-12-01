@@ -3,7 +3,6 @@
 //
 
 // const OBJ = require("./js_files/webgl-obj-loader");
-'use strict';
 
 var gl;
 var canvas;
@@ -13,19 +12,29 @@ var vertexPositionBuffer;
 var vertexColorBuffer;
 
 var mesh;
-// var uMVMatrix = mat4.create();
-// mat4.scale(uMVMatrix, [0.15, 0.15, 0.15]);
+var uMVMatrix = mat4.create();
+var uProjMatrix = mat4.create();
+
+mat4.identity(uMVMatrix);
+
+mat4.scale(uMVMatrix, uMVMatrix, [0.7, 0.6, 0.8]);
+mat4.perspective(uProjMatrix, Math.PI / 5, 1, 10, 20);
+
+console.log(uMVMatrix);
+console.log(uProjMatrix);
 
 
 function createShaders() {
 	let vert_shade = 
-		// 'uniform mat4 uMVMatrix;' +
+		'uniform mat4 uMVMatrix;' +
+		'uniform mat4 uProjMatrix;' +
 		'attribute vec3 vertcoordinates;' + 
 		'attribute vec4 verColor;' + 
 		'varying vec4 vColor;' + 
 		'void main()' +
 		'{' + 
-			// 'gl_Position = uMVMatrix * vec4(vertcoordinates, 1.0);' +
+			// 'vec4 eyeCoords = uMVMatrix * vec4(vertcoordinates, 1.0);' +
+			// 'gl_Position = uProjMatrix * eyeCoords;' +
 			'gl_Position = vec4(vertcoordinates, 1.0);' +
 			'vColor = verColor;' + 
 		'}';
@@ -106,9 +115,13 @@ function initMesh() {
 
 	console.log(mesh.vertices);
 
+	let mesh_verts = new Float32Array(mesh.vertices);
+	mesh_verts = mesh_verts.map(( vert_coord ) => vert_coord * 0.5);
+	console.log(mesh_verts[0]);
+
 	var vertexBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.vertices), gl.STATIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, mesh_verts, gl.STATIC_DRAW);
 	vertexBuffer.itemSize = 3;
 	vertexBuffer.numItems = mesh.vertices.length / 3;
 
@@ -132,8 +145,18 @@ function initMesh() {
 		0 // offset from the start to this attrib
 	);
   
-	// shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "verColor");
-	// gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+	shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "verColor");
+	gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+
+	gl.vertexAttribPointer(
+		shaderProgram.vertexColorAttribute,
+		3, // num elements per attribute (x, y, z coords)
+		gl.FLOAT,
+		gl.FALSE,
+		3 * Float32Array.BYTES_PER_ELEMENT, // size per vertex (in bytes)
+		0 // offset from the start to this attrib
+	);
+
 	gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
