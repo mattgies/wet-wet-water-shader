@@ -3,7 +3,7 @@
 //
 
 // const OBJ = require("./js_files/webgl-obj-loader");
-
+'use strict';
 
 var gl;
 var canvas;
@@ -13,16 +13,19 @@ var vertexPositionBuffer;
 var vertexColorBuffer;
 
 var mesh;
+var uMVMatrix = mat4.create();
+mat4.scale(uMVMatrix, [0.15, 0.15, 0.15]);
 
 
 function createShaders() {
 	let vert_shade = 
+		'uniform mat4 uMVMatrix;' +
 		'attribute vec3 vertcoordinates;' + 
 		'attribute vec4 verColor;' + 
 		'varying vec4 vColor;' + 
 		'void main()' +
 		'{' + 
-			'gl_Position = vec4(vertcoordinates, 1.0);' + 
+			'gl_Position = uMVMatrix *  vec4(vertcoordinates, 1.0);' +
 			'vColor = verColor;' + 
 		'}';
 
@@ -34,30 +37,35 @@ function createShaders() {
 			'gl_FragColor = vColor;' +
 		'}'; 
 
-	var vShader = gl.createShader(gl.VERTEX_SHADER );
+	// create and compile vertex shader
+	var vShader = gl.createShader(gl.VERTEX_SHADER);
 	gl.shaderSource(vShader, vert_shade);
 	gl.compileShader(vShader);
 
+	// validate vertex shader complication
 	if (!gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
 		console.error('ERROR compiling vertex shader!', gl.getShaderInfoLog(vShader));
 		return;
 	}
 
+	// create and compile fragment shader
 	var fShader = gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(fShader, frag_shade);
 	gl.compileShader(fShader);
 
+	// validate fragment shader compilation
 	if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
 		console.error('ERROR compiling fragment shader!', gl.getShaderInfoLog(fShader));
 		return;
 	}
 
+	// create shader program & attach vert + frag shaders
 	shaderProgram = gl.createProgram(); 
 	gl.attachShader(shaderProgram, vShader);
 	gl.attachShader(shaderProgram, fShader);
 	gl.linkProgram(shaderProgram);
 
-
+	// validate successful linkage of shader program with shaders
 	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
 		console.error('ERROR linking program!', gl.getProgramInfoLog(shaderProgram));
 		return;
@@ -67,78 +75,8 @@ function createShaders() {
 		console.error('ERROR validating program!', gl.getProgramInfoLog(shaderProgram));
 		return;
 	}
-
-	gl.useProgram(shaderProgram);
-	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vertcoordinates");
-	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-  
-	shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "verColor");
-	gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
 }
 
-function createBuffers() {
-	// vertexPositionBuffer = gl.createBuffer();
-	// gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
-
-	// // gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-
-	// var verts = [
-	// 	0.0, 0.7, 0.0,
-	// 	-0.7, -0.7, 0.0,
-	// 	0.7, -0.7, 0.0,
-
-	// ];
-
-	// gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
-	// vertexPositionBuffer.itemSize = 3;
-	// vertexPositionBuffer.numberOfItems = 3;
-
-
-
-	// vertexColorBuffer = gl.createBuffer();
-	// gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
-
-	// var colors = [
-	// 	1.0, 0.0, 0.0, 1.0,
-	// 	0.0, 1.0, 0.0, 1.0,
-	// 	0.0, 0.0, 1.0, 1.0,
-	// ];
-
-	// gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-	// vertexColorBuffer.itemSize = 4;
-	// vertexColorBuffer.numItems = 3;
-
-	// gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
-	// gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute,
-	// 					   vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-	// gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
-	// gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,
-	// 						  vertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-	// gl.drawArrays(gl.TRIANGLES, 0, vertexPositionBuffer.numberOfItems);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
-	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0,0);
-
-
-	if(!mesh.textures.length){
-		gl.disableVertexAttribArray(shaderProgram.textureCoordAttribute);
-	}
-    else{
-	      // if the texture vertexAttribArray has been previously
-	      // disabled, then it needs to be re-enabled
-		gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
-		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.textureBuffer);
-		gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, mesh.textureBuffer.itemSize, gl.FLOAT, false, 0, 0);
-	}
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
-    gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-
-}
 
 function createGLContext(canvas) {
 	var names = ["webgl", "experimental-webgl"];
@@ -161,10 +99,41 @@ function createGLContext(canvas) {
   }
 
 
-
 function initMesh() {
 	mesh = new OBJ.Mesh(bunny_mesh_str);
 	OBJ.initMeshBuffers(gl, mesh);
+
+	console.log(mesh.vertices);
+
+	var vertexBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.vertices), gl.STATIC_DRAW);
+	vertexBuffer.itemSize = 3;
+	vertexBuffer.numItems = mesh.vertices.length / 3;
+
+	var indexBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(mesh.indices), gl.STATIC_DRAW);
+	indexBuffer.itemSize = 3;
+	indexBuffer.numItems = mesh.indices.length / 3;
+
+	// enable the attributes for the vertex shader
+	gl.useProgram(shaderProgram);
+	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vertcoordinates");
+	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+	gl.vertexAttribPointer(
+		shaderProgram.vertexPositionAttribute,
+		3, // num elements per attribute (x, y, z coords)
+		gl.FLOAT,
+		gl.FALSE,
+		3 * Float32Array.BYTES_PER_ELEMENT, // size per vertex (in bytes)
+		0 // offset from the start to this attrib
+	);
+  
+	// shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "verColor");
+	// gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+	gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
 
@@ -180,14 +149,13 @@ function initGL() {
 	  );
 	  return;
 	}
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);
+	gl.clearColor(0.5, 0.95, 0.8, 1.0);
 	// Clear the color buffer with specified clear color
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	
 
 	createShaders();
 	initMesh();
-	createBuffers();
 
 
 	gl.enable(gl.DEPTH_TEST);
