@@ -2,12 +2,17 @@
 // start here
 //
 
+// const OBJ = require("./js_files/webgl-obj-loader");
+
+
 var gl;
 var canvas;
 var shaderProgram;
 
 var vertexPositionBuffer;
 var vertexColorBuffer;
+
+var mesh;
 
 
 function createShaders() {
@@ -72,46 +77,66 @@ function createShaders() {
 }
 
 function createBuffers() {
-	vertexPositionBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
+	// vertexPositionBuffer = gl.createBuffer();
+	// gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
 
-	// gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+	// // gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 
-	var verts = [
-		0.0, 0.7, 0.0,
-		-0.7, -0.7, 0.0,
-		0.7, -0.7, 0.0,
+	// var verts = [
+	// 	0.0, 0.7, 0.0,
+	// 	-0.7, -0.7, 0.0,
+	// 	0.7, -0.7, 0.0,
 
-	];
+	// ];
 
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
-	vertexPositionBuffer.itemSize = 3;
-	vertexPositionBuffer.numberOfItems = 3;
+	// gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+	// vertexPositionBuffer.itemSize = 3;
+	// vertexPositionBuffer.numberOfItems = 3;
 
 
 
-	vertexColorBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
+	// vertexColorBuffer = gl.createBuffer();
+	// gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
 
-	var colors = [
-		1.0, 0.0, 0.0, 1.0,
-		0.0, 1.0, 0.0, 1.0,
-		0.0, 0.0, 1.0, 1.0,
-	];
+	// var colors = [
+	// 	1.0, 0.0, 0.0, 1.0,
+	// 	0.0, 1.0, 0.0, 1.0,
+	// 	0.0, 0.0, 1.0, 1.0,
+	// ];
 
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-	vertexColorBuffer.itemSize = 4;
-	vertexColorBuffer.numItems = 3;
+	// gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+	// vertexColorBuffer.itemSize = 4;
+	// vertexColorBuffer.numItems = 3;
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
-	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute,
-						   vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
-	gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,
-							  vertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+	// gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
+	// gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute,
+	// 					   vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+	// gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
+	// gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,
+	// 						  vertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-	gl.drawArrays(gl.TRIANGLES, 0, vertexPositionBuffer.numberOfItems);
+	// gl.drawArrays(gl.TRIANGLES, 0, vertexPositionBuffer.numberOfItems);
 
+	gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
+	gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0,0);
+
+
+	if(!mesh.textures.length){
+		gl.disableVertexAttribArray(shaderProgram.textureCoordAttribute);
+	}
+    else{
+	      // if the texture vertexAttribArray has been previously
+	      // disabled, then it needs to be re-enabled
+		gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.textureBuffer);
+		gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, mesh.textureBuffer.itemSize, gl.FLOAT, false, 0, 0);
+	}
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+    gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
 }
 
@@ -137,6 +162,12 @@ function createGLContext(canvas) {
 
 
 
+function initMesh() {
+	mesh = new OBJ.Mesh(bunny_mesh_str);
+	OBJ.initMeshBuffers(gl, mesh);
+}
+
+
 function initGL() {
 	canvas = document.querySelector("#glCanvas");
 	// Initialize the GL context
@@ -155,7 +186,9 @@ function initGL() {
 	
 
 	createShaders();
+	initMesh();
 	createBuffers();
+
 
 	gl.enable(gl.DEPTH_TEST);
   
