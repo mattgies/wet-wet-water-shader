@@ -13,19 +13,20 @@ var vertexPositionBuffer;
 var vertexColorBuffer;
 
 var mesh;
-var uMVMatrix = mat4.create();
-mat4.scale(uMVMatrix, [0.15, 0.15, 0.15]);
+// var uMVMatrix = mat4.create();
+// mat4.scale(uMVMatrix, [0.15, 0.15, 0.15]);
 
 
 function createShaders() {
 	let vert_shade = 
-		'uniform mat4 uMVMatrix;' +
+		// 'uniform mat4 uMVMatrix;' +
 		'attribute vec3 vertcoordinates;' + 
 		'attribute vec4 verColor;' + 
 		'varying vec4 vColor;' + 
 		'void main()' +
 		'{' + 
-			'gl_Position = uMVMatrix *  vec4(vertcoordinates, 1.0);' +
+			// 'gl_Position = uMVMatrix * vec4(vertcoordinates, 1.0);' +
+			'gl_Position = vec4(vertcoordinates, 1.0);' +
 			'vColor = verColor;' + 
 		'}';
 
