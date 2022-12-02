@@ -142,11 +142,13 @@ function initMesh() {
 	gl.useProgram(shaderProgram);
 	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 
+	
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
 	gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    // gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
-    // gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
     gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
