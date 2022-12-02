@@ -21,23 +21,22 @@ function createShaders() {
 	let vert_shade = 
 		'uniform mat4 uMVMatrix;' +
 		'uniform mat4 uProjMatrix;' +
+		'attribute vec3 vNorm;' +
 		'attribute vec3 vertcoordinates;' + 
-		// 'attribute vec3 verColor;' + 
-		'varying vec4 vPosition;' + 
+		'varying vec4 vColor;' + 
 		'void main()' +
 		'{' + 
 			'vec4 eyeCoords = vec4(vertcoordinates, 1.0) ;' +
-			// 'gl_Position = uProjMatrix * eyeCoords;' +
 			'gl_Position = uProjMatrix * uMVMatrix * eyeCoords;' +
-			'vPosition = eyeCoords;' + 
+			'vColor = vec4(vNorm, 1.0);' +
 		'}';
 
 	let frag_shade = 
 		'precision mediump float;' + 
-		'varying vec4 vPosition;' + 
+		'varying vec4 vColor;' +
 		'void main()'+
 		'{' +
-			'gl_FragColor = vPosition;' +
+			'gl_FragColor = vColor;' +
 		'}'; 
 
 	// create and compile vertex shader
@@ -101,21 +100,12 @@ function createGLContext(canvas) {
 	return context;
   }
 
-
-function drawScene() {
+function initMesh() {
 	mesh = new OBJ.Mesh(bunny_mesh_str);
 	OBJ.initMeshBuffers(gl, mesh);
+}
 
-	// console.log(mesh.vertices);
-
-	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vertcoordinates");
-	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-
-	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjMatrix");
-	gl.useProgram(shaderProgram);
-
-
+function setUpMatrices() {
 	// implement transforms
 	// mvMatrix setup
 	mvMatrix = mat4.create();
@@ -131,8 +121,21 @@ function drawScene() {
 	mat4.perspective(36, gl.viewportWidth / gl.viewportHeight, 0.1, 1000, projMatrix);
 	// console.log(projMatrix);
 	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, projMatrix);
-	
+}
 
+
+function drawScene() {
+	// console.log(mesh.vertices);
+	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vertcoordinates");
+	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+	shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "vNorm");
+	gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+
+	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjMatrix");
+	gl.useProgram(shaderProgram);
+
+	console.log(mesh.vertexNormals);
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -141,7 +144,7 @@ function drawScene() {
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
 
-	gl.clearColor(42/255, 47/255, 145/255, 1.0);
+	gl.clearColor(clearColorR, clearColorG, clearColorB, 1.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	// Clear the color buffer with specified clear color
     gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
@@ -149,7 +152,10 @@ function drawScene() {
 	// gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
-
+var clearColorR = 0.2;
+// console.log(clearColorR);
+var clearColorG = 0.5;
+var clearColorB = 0.7;
 var lastTime = 0;
 var rotSpeed = 0.005;
 var rotAmount = 0.0;
@@ -163,6 +169,7 @@ function tick() {
 	}
 	lastTime = timeNow;
 
+	setUpMatrices();
 	drawScene();
 }
 
@@ -181,8 +188,8 @@ function initGL() {
 
 	createShaders();
 
-
 	gl.enable(gl.DEPTH_TEST);
+	initMesh();
 	tick();
   
 
