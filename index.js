@@ -12,15 +12,16 @@ var vertexPositionBuffer;
 var vertexColorBuffer;
 
 var mesh;
-var uMVMatrix = mat4.create();
+var mvMatrix;
+var currentTransform;
 var uProjMatrix = mat4.create();
 
-mat4.identity(uMVMatrix);
+// mat4.identity(uMVMatrix);
 
-mat4.scale(uMVMatrix, uMVMatrix, [0.7, 0.6, 0.8]);
-mat4.perspective(uProjMatrix, Math.PI / 5, 1, 10, 20);
+// mat4.scale(uMVMatrix, uMVMatrix, [0.7, 0.6, 0.8]);
+// mat4.perspective(uProjMatrix, Math.PI / 5, 1, 10, 20);
 
-console.log(uMVMatrix);
+// console.log(uMVMatrix);
 console.log(uProjMatrix);
 
 
@@ -29,22 +30,22 @@ function createShaders() {
 		'uniform mat4 uMVMatrix;' +
 		'uniform mat4 uProjMatrix;' +
 		'attribute vec3 vertcoordinates;' + 
-		'attribute vec4 verColor;' + 
-		'varying vec4 vColor;' + 
+		// 'attribute vec3 verColor;' + 
+		'varying vec4 vPosition;' + 
 		'void main()' +
 		'{' + 
-			// 'vec4 eyeCoords = uMVMatrix * vec4(vertcoordinates, 1.0);' +
+			'vec4 eyeCoords = vec4(vertcoordinates, 1.0) ;' +
 			// 'gl_Position = uProjMatrix * eyeCoords;' +
-			'gl_Position = vec4(vertcoordinates, 1.0);' +
-			'vColor = verColor;' + 
+			'gl_Position = uMVMatrix * eyeCoords;' +
+			'vPosition = eyeCoords;' + 
 		'}';
 
 	let frag_shade = 
 		'precision mediump float;' + 
-		'varying vec4 vColor;' + 
+		'varying vec4 vPosition;' + 
 		'void main()'+
 		'{' +
-			'gl_FragColor = vColor;' +
+			'gl_FragColor = vPosition;' +
 		'}'; 
 
 	// create and compile vertex shader
@@ -115,49 +116,42 @@ function initMesh() {
 
 	console.log(mesh.vertices);
 
-	let mesh_verts = new Float32Array(mesh.vertices);
-	mesh_verts = mesh_verts.map(( vert_coord ) => vert_coord * 0.5);
-	console.log(mesh_verts[0]);
-
-	var vertexBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, mesh_verts, gl.STATIC_DRAW);
-	vertexBuffer.itemSize = 3;
-	vertexBuffer.numItems = mesh.vertices.length / 3;
-
-	var indexBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(mesh.indices), gl.STATIC_DRAW);
-	indexBuffer.itemSize = 3;
-	indexBuffer.numItems = mesh.indices.length / 3;
-
-	// enable the attributes for the vertex shader
-	gl.useProgram(shaderProgram);
 	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vertcoordinates");
 	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
-	gl.vertexAttribPointer(
-		shaderProgram.vertexPositionAttribute,
-		3, // num elements per attribute (x, y, z coords)
-		gl.FLOAT,
-		gl.FALSE,
-		3 * Float32Array.BYTES_PER_ELEMENT, // size per vertex (in bytes)
-		0 // offset from the start to this attrib
-	);
-  
-	shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "verColor");
-	gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
 
-	gl.vertexAttribPointer(
-		shaderProgram.vertexColorAttribute,
-		3, // num elements per attribute (x, y, z coords)
-		gl.FLOAT,
-		gl.FALSE,
-		3 * Float32Array.BYTES_PER_ELEMENT, // size per vertex (in bytes)
-		0 // offset from the start to this attrib
-	);
 
-	gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+	// implement transforms
+
+	currentTransform = mat4.create();
+	mvMatrix = mat4.create();
+
+	mat4.identity(currentTransform);
+    // mat4.rotateX(currentTransform, currentTransform, -1.5708);
+	mat4.translate( currentTransform, [0.0, -0.2, 0.9]);
+    mat4.scale( currentTransform, [0.45, 0.45, 0.45]);      
+	// mat4.translate(currentTransform, [0.0, -0.2, -1.5]);  
+
+
+	mat4.identity(mvMatrix);
+	// mat4.translate(mvMatrix, [0.0, -0.3, -0.5]); // this doesn't work? i have to translate directly in the vertex shader
+    mat4.multiply(mvMatrix, currentTransform);
+	console.log(mvMatrix);
+
+	gl.useProgram(shaderProgram);
+	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    // gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
+    // gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+    gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+	// gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
 
@@ -179,6 +173,7 @@ function initGL() {
 	
 
 	createShaders();
+	// gl.uniformMatrix4fv(prog.mvMatrixUniform, false, uMVMatrix);
 	initMesh();
 
 
