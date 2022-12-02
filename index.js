@@ -14,15 +14,7 @@ var vertexColorBuffer;
 var mesh;
 var mvMatrix;
 var currentTransform;
-var uProjMatrix = mat4.create();
-
-// mat4.identity(uMVMatrix);
-
-// mat4.scale(uMVMatrix, uMVMatrix, [0.7, 0.6, 0.8]);
-// mat4.perspective(uProjMatrix, Math.PI / 5, 1, 10, 20);
-
-// console.log(uMVMatrix);
-console.log(uProjMatrix);
+var projMatrix;
 
 
 function createShaders() {
@@ -36,7 +28,7 @@ function createShaders() {
 		'{' + 
 			'vec4 eyeCoords = vec4(vertcoordinates, 1.0) ;' +
 			// 'gl_Position = uProjMatrix * eyeCoords;' +
-			'gl_Position = uMVMatrix * eyeCoords;' +
+			'gl_Position = uProjMatrix * uMVMatrix * eyeCoords;' +
 			'vPosition = eyeCoords;' + 
 		'}';
 
@@ -110,38 +102,35 @@ function createGLContext(canvas) {
   }
 
 
-function initMesh() {
+function drawScene() {
 	mesh = new OBJ.Mesh(bunny_mesh_str);
 	OBJ.initMeshBuffers(gl, mesh);
 
-	console.log(mesh.vertices);
+	// console.log(mesh.vertices);
 
 	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vertcoordinates");
 	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
 	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjMatrix");
+	gl.useProgram(shaderProgram);
 
 
 	// implement transforms
-
-	currentTransform = mat4.create();
+	// mvMatrix setup
 	mvMatrix = mat4.create();
 
-	mat4.identity(currentTransform);
-    // mat4.rotateX(currentTransform, currentTransform, -1.5708);
-	mat4.translate( currentTransform, [0.0, -0.2, 0.9]);
-    mat4.scale( currentTransform, [0.45, 0.45, 0.45]);      
-	// mat4.translate(currentTransform, [0.0, -0.2, -1.5]);  
-
-
 	mat4.identity(mvMatrix);
-	// mat4.translate(mvMatrix, [0.0, -0.3, -0.5]); // this doesn't work? i have to translate directly in the vertex shader
-    mat4.multiply(mvMatrix, currentTransform);
-	console.log(mvMatrix);
-
-	gl.useProgram(shaderProgram);
+	mat4.translate( mvMatrix, [0.0, 0.0, -20 ] );
+	mat4.rotate( mvMatrix, rotAmount, [0, 1, -1] ); 
 	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 
+	// projMatrix setup
+	projMatrix = mat4.create();
+	mat4.identity(projMatrix);
+	mat4.perspective(36, gl.viewportWidth / gl.viewportHeight, 0.1, 1000, projMatrix);
+	// console.log(projMatrix);
+	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, projMatrix);
 	
 
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
@@ -151,11 +140,31 @@ function initMesh() {
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+
+	gl.clearColor(42/255, 47/255, 145/255, 1.0);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	// Clear the color buffer with specified clear color
     gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
 	// gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
+
+var lastTime = 0;
+var rotSpeed = 0.005;
+var rotAmount = 0.0;
+function tick() {
+	requestAnimationFrame(tick);
+
+	var timeNow = new Date().getTime();
+	if (lastTime != 0) {
+		var elapsed = timeNow - lastTime;
+		rotAmount += rotSpeed * elapsed;
+	}
+	lastTime = timeNow;
+
+	drawScene();
+}
 
 function initGL() {
 	canvas = document.querySelector("#glCanvas");
@@ -169,19 +178,13 @@ function initGL() {
 	  );
 	  return;
 	}
-	gl.clearColor(0.5, 0.95, 0.8, 1.0);
-	// Clear the color buffer with specified clear color
-	gl.clear(gl.COLOR_BUFFER_BIT);
-	
 
 	createShaders();
-	// gl.uniformMatrix4fv(prog.mvMatrixUniform, false, uMVMatrix);
-	initMesh();
 
 
 	gl.enable(gl.DEPTH_TEST);
+	tick();
   
-	// Set clear color to black, fully opaque
 
   }
   
