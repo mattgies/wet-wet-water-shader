@@ -9,4 +9,12 @@ Rendering Water Caustics using WebGL and 3D objects made in Blender
 [Mozilla WebGL Documentation](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Getting_started_with_WebGL) \
 [Youtube Tutorial for WebGL](https://youtu.be/kB0ZVUrI4Aw) \
 [DevOpera tutorial to WebGL + WebGL Libraries](https://dev.opera.com/articles/introduction-to-webgl-part-1/) \
-[WebGL Reference](https://glmatrix.net/docs/module-mat4.html)
+[WebGL Reference](https://glmatrix.net/docs/module-mat4.html) \
+[NVIDIA Water Simulation Physics Models](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models)
+
+
+## TODO
+- add normal matrix and multiply normal matrix within the vertex shader to get cam space normals to pass to frag shader
+- experiment with vertex offsets for the water's surface
+- implement snell's law for light refraction (gl.refract)
+
