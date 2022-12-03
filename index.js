@@ -2,6 +2,8 @@
 // start here
 //
 
+
+
 // const OBJ = require("./js_files/webgl-obj-loader");
 
 var gl;
@@ -17,18 +19,18 @@ var currentTransform;
 var projMatrix;
 
 
-function createShaders() {
+function createShaders() { // modify parameters if make multiple shaders
 	let vert_shade = 
 		'uniform mat4 uMVMatrix;' +
 		'uniform mat4 uProjMatrix;' +
-		'attribute vec3 vertcoordinates;' + 
+		'attribute vec3 vCoords;' + 
 		'attribute vec3 vNorm;' +
 		
 		'varying vec4 vColor;' + 
 		
 		'void main()' +
 		'{' + 
-			'vec4 eyeCoords = vec4(vertcoordinates, 1.0) ;' +
+			'vec4 eyeCoords = vec4(vCoords, 1.0) ;' +
 			'gl_Position = uProjMatrix * uMVMatrix * eyeCoords;' +
 			'vColor = vec4(abs(vNorm), 1.0);' +
 		'}';
@@ -64,7 +66,7 @@ function createShaders() {
 	}
 
 	// create shader program & attach vert + frag shaders
-	shaderProgram = gl.createProgram(); 
+	shaderProgram = gl.createProgram(); // take this out if we parametrize our createShaders function
 	gl.attachShader(shaderProgram, vShader);
 	gl.attachShader(shaderProgram, fShader);
 	gl.linkProgram(shaderProgram);
@@ -79,6 +81,8 @@ function createShaders() {
 		console.error('ERROR validating program!', gl.getProgramInfoLog(shaderProgram));
 		return;
 	}
+
+	gl.useProgram(shaderProgram);
 }
 
 
@@ -102,10 +106,12 @@ function createGLContext(canvas) {
 	return context;
   }
 
-function initMesh() {
-	mesh = new OBJ.Mesh(bunny_mesh_str);
+
+function initObj(obj_string) {
+	mesh = new OBJ.Mesh(obj_string);
 	OBJ.initMeshBuffers(gl, mesh);
 }
+
 
 function setUpMatrices() {
 	// implement transforms
@@ -113,8 +119,27 @@ function setUpMatrices() {
 	mvMatrix = mat4.create();
 
 	mat4.identity(mvMatrix);
-	mat4.translate( mvMatrix, [0.0, 0.0, -20 ] );
-	mat4.rotate( mvMatrix, rotAmount, [0, 1, -1] ); 
+	mat4.translate( mvMatrix, [0.0, 0.0, -30 ] );
+	mat4.rotate( mvMatrix, rotAmount, [-1, 1, -1] ); 
+	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+
+	// projMatrix setup
+	projMatrix = mat4.create();
+	mat4.identity(projMatrix);
+	mat4.perspective(36, gl.viewportWidth / gl.viewportHeight, 0.1, 1000, projMatrix);
+	// console.log(projMatrix);
+	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, projMatrix);
+}
+
+function setUpMatrices2() {
+	// implement transforms
+	// mvMatrix setup
+	mvMatrix = mat4.create();
+
+	mat4.identity(mvMatrix);
+	mat4.translate( mvMatrix, [0.0, 2.0, -20 ] );
+	mat4.rotate( mvMatrix, rotAmount, [-1, 1, -1] );
+	mat4.translate( mvMatrix, [0.0, -2.0, 2 ] );
 	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 
 	// projMatrix setup
@@ -126,17 +151,21 @@ function setUpMatrices() {
 }
 
 
-function drawScene() {
-	// console.log(mesh.vertices);
-	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vertcoordinates");
+function setUpShaderAttribs() {
+	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vCoords");
 	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 	shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "vNorm");
 	gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+}
 
+function setUpShaderUniforms() {
 	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
 	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjMatrix");
+}
 
-	gl.useProgram(shaderProgram);
+function drawScene() {
+	setUpShaderAttribs();
+	setUpShaderUniforms();
 
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
@@ -146,10 +175,7 @@ function drawScene() {
     gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
-
-	gl.clearColor(clearColorR, clearColorG, clearColorB, 1.0);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	// Clear the color buffer with specified clear color
+	// // Clear the color buffer with specified clear color
     gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
 	// gl.drawElements(gl.TRIANGLES, indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
@@ -172,7 +198,17 @@ function tick() {
 	}
 	lastTime = timeNow;
 
+	gl.clearColor(clearColorR, clearColorG, clearColorB, 1.0);
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	initObj(bunny_mesh_str);
+	setUpMatrices2();
+	drawScene();
 	setUpMatrices();
+	drawScene();
+
+	OBJ.deleteMeshBuffers(gl, mesh);
+
+	initObj(one_plane);
 	drawScene();
 }
 
@@ -192,7 +228,8 @@ function initGL() {
 	createShaders();
 
 	gl.enable(gl.DEPTH_TEST);
-	initMesh();
+
+	initObj(bunny_mesh_str);
 	tick();
   
 
