@@ -150,6 +150,25 @@ function setUpMatrices2() {
 	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, projMatrix);
 }
 
+function setUpMatrices3() {
+	// implement transforms
+	// mvMatrix setup
+	mvMatrix = mat4.create();
+
+	mat4.identity(mvMatrix);
+	mat4.translate( mvMatrix, [-1.0, -3.0, -20 ] );
+	mat4.rotate( mvMatrix, rotAmount, [-1, 1, -1] );
+	mat4.translate( mvMatrix, [0.0, -2.0, 2 ] );
+	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+
+	// projMatrix setup
+	projMatrix = mat4.create();
+	mat4.identity(projMatrix);
+	mat4.perspective(36, gl.viewportWidth / gl.viewportHeight, 0.1, 1000, projMatrix);
+	// console.log(projMatrix);
+	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, projMatrix);
+}
+
 
 function setUpShaderAttribs() {
 	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "vCoords");
@@ -208,6 +227,7 @@ function tick() {
 
 	OBJ.deleteMeshBuffers(gl, mesh);
 
+	setUpMatrices3();
 	initObj(one_plane);
 	drawScene();
 }
@@ -232,7 +252,4 @@ function initGL() {
 	initObj(bunny_mesh_str);
 	tick();
   
-
   }
-  
-//   window.onload = main;
