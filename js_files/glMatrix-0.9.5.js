@@ -82,6 +82,14 @@ vec3.normalize = function(a, b) {
 	b[2] = e * g;
 	return b
 };
+vec3.abs = function(a, b) {
+	b || (b = a);
+	b[0] = Math.abs(a[0]);
+	b[1] = Math.abs(a[1]);
+	b[2] = Math.abs(a[2]);
+
+	return b;
+};
 vec3.cross = function(a, b, c) {
 	c || (c = a);
 	var d = a[0], e = a[1];

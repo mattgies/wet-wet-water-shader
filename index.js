@@ -21,14 +21,16 @@ function createShaders() {
 	let vert_shade = 
 		'uniform mat4 uMVMatrix;' +
 		'uniform mat4 uProjMatrix;' +
-		'attribute vec3 vNorm;' +
 		'attribute vec3 vertcoordinates;' + 
+		'attribute vec3 vNorm;' +
+		
 		'varying vec4 vColor;' + 
+		
 		'void main()' +
 		'{' + 
 			'vec4 eyeCoords = vec4(vertcoordinates, 1.0) ;' +
 			'gl_Position = uProjMatrix * uMVMatrix * eyeCoords;' +
-			'vColor = vec4(vNorm, 1.0);' +
+			'vColor = vec4(abs(vNorm), 1.0);' +
 		'}';
 
 	let frag_shade = 
@@ -133,14 +135,15 @@ function drawScene() {
 
 	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
 	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uProjMatrix");
+
 	gl.useProgram(shaderProgram);
 
-	console.log(mesh.vertexNormals);
-    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
 
