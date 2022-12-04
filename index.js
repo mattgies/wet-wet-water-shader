@@ -11,13 +11,18 @@ var mvMatrix; // model-view matrix
 var nMatrix; // normal matrix
 var projMatrix; // projection matrix for MVP transformations
 var lightPos; // position of the light, used as a uniform for shader calculations
+var totalTimeElapsed = 0; // used for animation of the waves within the vertex shader, so animation speed is consistent regardless of the amt of time for frame draw
 
 
 function createShaders() { // modify parameters if make multiple shaders
 	let vert_shade = `
+		precision mediump float; // had to add this line because using mvMatrix in the fragment shader caused an error bc of differing precision
+
 		uniform mat4 u_mvMatrix;
 		uniform mat4 u_nMatrix;
 		uniform mat4 u_pMatrix;
+		
+		uniform float u_totalTimeElapsed;
 
 		attribute vec3 a_vCoords;
 		attribute vec3 a_vNorm;
@@ -27,11 +32,20 @@ function createShaders() { // modify parameters if make multiple shaders
 		varying vec3 v_vNorm;
 
 		void main() {
-			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0) ;
+			float offsetFromX = 0.2 * sin(a_vCoords.x + 0.005 * u_totalTimeElapsed);
+			float offsetFromZ = 0.2 * sin(a_vCoords.z + 0.005 * u_totalTimeElapsed);
+			vec3 offsetCoords = vec3(a_vCoords.x, a_vCoords.y + offsetFromX + offsetFromZ, a_vCoords.z);
+
+			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
+			vec3 alpha = vec3(1.0, 0.2 * cos(a_vCoords.x), 0.0);
+			vec3 beta = vec3(0.0, 0.2 * cos(a_vCoords.z), 1.0);
+			v_vNorm = normalize(vec3(u_nMatrix * vec4(cross(beta, alpha), 1.0)));
+			
+			vec4 camSpacePos = u_mvMatrix * vec4(offsetCoords, 1.0);
 			v_vPos = vec3(camSpacePos);
 			gl_Position = u_pMatrix * camSpacePos;
 			v_vColor = vec4((a_vNorm), 1.0);
-			v_vNorm = vec3(u_nMatrix * vec4(a_vNorm, 1.0));
+			// v_vNorm = vec3(u_nMatrix * vec4(a_vNorm, 1.0));
 		}
 	`;
 
@@ -39,17 +53,22 @@ function createShaders() { // modify parameters if make multiple shaders
 		precision mediump float;
 
 		uniform vec3 u_lightPos;
+		uniform mat4 u_mvMatrix;
 
 		varying vec4 v_vColor;
 		varying vec3 v_vPos;
 		varying vec3 v_vNorm;
 
 		void main() {
+			vec4 intermed = u_mvMatrix * vec4(u_lightPos, 1.0);
+			vec3 camSpaceLightPos = vec3(intermed);
+
 			// basic diffuse shader implementation
-			vec3 Kd = vec3(0.15, 0.95, 0.6);
-			float I = 5.0;
-			float maxDot = max(0.0, dot(v_vNorm, u_lightPos - v_vPos));
-			float rSquared = length( u_lightPos - v_vPos ) * length( u_lightPos - v_vPos );
+
+			vec3 Kd = vec3(0.15, 0.45, 0.85);
+			float I = 0.5;
+			float maxDot = max(0.0, dot(v_vNorm, camSpaceLightPos - v_vPos));
+			float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
 
 			gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
 		}
@@ -150,8 +169,13 @@ function setUpNMatrix() {
 
 
 function setUpLightPos() {
-	lightPos = vec3.create([0.0, 5.0, 0.0]);
+	lightPos = vec3.create([0.2, 1.4, -0.4]); // object-space position of the light (converted to cam space in the frag shader)
 	gl.uniform3fv(shaderProgram.lightPosUniform, lightPos);
+}
+
+
+function updateTotalTimeElapsedUniform() {
+	gl.uniform1f(shaderProgram.totalTimeElapsedUniform, totalTimeElapsed);
 }
 
 
@@ -168,11 +192,13 @@ function setUpShaderUniforms() {
 	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "u_pMatrix");
 	shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "u_nMatrix");
 	shaderProgram.lightPosUniform = gl.getUniformLocation(shaderProgram, "u_lightPos");
+	shaderProgram.totalTimeElapsedUniform = gl.getUniformLocation(shaderProgram, "u_totalTimeElapsed");
 
 	setUpMVMatrix();
 	setUpProjMatrix();
 	setUpNMatrix();
 	setUpLightPos();
+	updateTotalTimeElapsedUniform();
 }
 
 
@@ -180,8 +206,11 @@ function drawScene() {
 	gl.clearColor(clearColorR, clearColorG, clearColorB, 1.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+	updateTotalTimeElapsedUniform();
+
 	for (obj of objsToDraw) {
 		mesh = obj;
+
 		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
 		gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -198,15 +227,20 @@ var clearColorR = 0.35;
 var clearColorG = 0.5;
 var clearColorB = 0.7;
 var lastTime = 0;
-var rotSpeed = 0.0005;
-var rotAmount = 0;
+var elapsed;
+var rotSpeed = 0.0002;
+var rotAmount = Math.PI / 2;
 function tick() {
 	requestAnimationFrame(tick);
 
 	var timeNow = new Date().getTime();
 	if (lastTime != 0) {
-		var elapsed = timeNow - lastTime;
+		elapsed = timeNow - lastTime;
 		rotAmount += rotSpeed * elapsed;
+		if (rotAmount > Math.PI || rotAmount < Math.PI / 2) {
+			rotSpeed = -rotSpeed;
+		}
+		totalTimeElapsed += elapsed; // defined in the vars section at the very top of this index.js file
 	}
 	lastTime = timeNow;
 
@@ -224,6 +258,7 @@ function getObjectsToDraw(obj_str_names) {
 	for (obj_name of obj_str_names) {
 		mesh = new OBJ.Mesh(obj_name);
 		OBJ.initMeshBuffers(gl, mesh);
+
 		objsToDraw.push(mesh);
 	}
 }
