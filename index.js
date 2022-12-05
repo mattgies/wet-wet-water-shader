@@ -272,6 +272,7 @@ function initGL() {
 	basicShaderProgram = gl.createProgram();
 	waterShaderProgram = gl.createProgram();
 
+	// ground shader
 	let vert_shade = `
 		precision mediump float; // had to add this line because using mvMatrix in the fragment shader caused an error bc of differing precision
 
@@ -290,7 +291,7 @@ function initGL() {
 		varying vec3 v_vNorm;
 		varying vec3 v_Intersect;
 
-		void main() {		
+		void main() {			
 			vec3 waterPos = vec3(a_vCoords.x, 0.808494, a_vCoords.z);
 			
 			float offsetFromX = 0.1 * sin(waterPos.x + 0.005 * u_totalTimeElapsed);
@@ -298,8 +299,8 @@ function initGL() {
 			vec3 offsetCoords = vec3(waterPos.x, waterPos.y + offsetFromX + offsetFromZ, waterPos.z);
 
 			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
-			vec3 alpha = vec3(1.0, 0.2 * cos(waterPos.x), 0.0);
-			vec3 beta = vec3(0.0, 0.2 * cos(waterPos.z), 1.0);
+			vec3 alpha = vec3(1.0, 0.1 * cos(waterPos.x + 0.005 * u_totalTimeElapsed), 0.0);
+			vec3 beta = vec3(0.0, 0.1 * cos(waterPos.z + 0.005 * u_totalTimeElapsed / 1.4), 1.0);
 			v_vNorm = normalize(vec3(u_nMatrix * vec4(cross(beta, alpha), 1.0)));
 
 			vec3 refractRay = refract(normalize(offsetCoords), v_vNorm, u_IOR_ratio);
@@ -347,6 +348,7 @@ function initGL() {
 
 	createShaderProgram(basicShaderProgram, vert_shade, frag_shade);
 
+	// water shader
 	vert_shade = `
 		precision mediump float; // had to add this line because using mvMatrix in the fragment shader caused an error bc of differing precision
 
@@ -368,13 +370,22 @@ function initGL() {
 		// END TEST
 
 		void main() {
-			float offsetFromX = 0.1 * sin(a_vCoords.x + 0.005 * u_totalTimeElapsed);
-			float offsetFromZ = 0.1 * sin(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4);
-			vec3 offsetCoords = vec3(a_vCoords.x, a_vCoords.y + offsetFromX + offsetFromZ, a_vCoords.z);
+			float offsetFromX1 = 0.05 * sin(a_vCoords.x + 0.005 * u_totalTimeElapsed);
+			float offsetFromX2 = 0.05 * -sin(a_vCoords.x + 0.007 * u_totalTimeElapsed);
+
+			float offsetFromZ1 = 0.05 * sin(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4);
+			
+			float offsetFromXZ = 0.05 * sin(a_vCoords.x + a_vCoords.z + .003 * u_totalTimeElapsed);
+
+			vec3 offsetCoords = vec3(a_vCoords.x, a_vCoords.y + offsetFromX1 + offsetFromZ1 + offsetFromX2 + offsetFromXZ, a_vCoords.z);
 
 			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
-			vec3 alpha = vec3(1.0, 0.2 * cos(a_vCoords.x), 0.0);
-			vec3 beta = vec3(0.0, 0.2 * cos(a_vCoords.z), 1.0);
+			vec3 alpha = vec3(1.0, 0.05 * cos(a_vCoords.x + 0.005 * u_totalTimeElapsed)
+								 - 0.05 * cos(a_vCoords.x + 0.007 * u_totalTimeElapsed) 
+								 + 0.05 * cos(a_vCoords.x +  a_vCoords.z + .003 * u_totalTimeElapsed) , 0.0);
+			vec3 beta = vec3(0.0, 0.05 * cos(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4) 
+								+ 0.05 * cos(a_vCoords.x +  a_vCoords.z + .003 * u_totalTimeElapsed)
+								, 1.0);
 			v_vNorm = normalize(vec3(u_nMatrix * vec4(cross(beta, alpha), 1.0)));
 			
 			vec4 camSpacePos = u_mvMatrix * vec4(offsetCoords, 1.0);
