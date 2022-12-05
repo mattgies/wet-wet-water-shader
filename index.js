@@ -14,7 +14,7 @@ var nMatrix; // normal matrix
 var projMatrix; // projection matrix for MVP transformations
 var lightPos; // position of the light, used as a uniform for shader calculations
 var totalTimeElapsed = 0; // used for animation of the waves within the vertex shader, so animation speed is consistent regardless of the amt of time for frame draw
-
+var IOR_ratio = 1.0 / 1.33;
 
 function createShaderProgram(shaderProgram, vShaderStr, fShaderStr) { // modify parameters if make multiple shaders
 	// create and compile vertex shader
@@ -117,6 +117,7 @@ function setUpLightPos(shaderProgram) {
 
 function updateTotalTimeElapsedUniform(shaderProgram) {
 	gl.uniform1f(shaderProgram.totalTimeElapsedUniform, totalTimeElapsed);
+	gl.uniform1f(shaderProgram.IORRatioUniform, IOR_ratio);
 }
 
 
@@ -134,6 +135,8 @@ function setUpShaderUniforms(shaderProgram) {
 	shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "u_nMatrix");
 	shaderProgram.lightPosUniform = gl.getUniformLocation(shaderProgram, "u_lightPos");
 	shaderProgram.totalTimeElapsedUniform = gl.getUniformLocation(shaderProgram, "u_totalTimeElapsed");
+	shaderProgram.IORRatioUniform = gl.getUniformLocation(shaderProgram, "u_IOR_ratio");
+
 
 	setUpMVMatrix(shaderProgram);
 	setUpProjMatrix(shaderProgram);
@@ -277,6 +280,7 @@ function initGL() {
 		uniform mat4 u_pMatrix;
 		
 		uniform float u_totalTimeElapsed;
+		uniform float u_IOR_ratio;
 
 		attribute vec3 a_vCoords;
 		attribute vec3 a_vNorm;
@@ -284,10 +288,29 @@ function initGL() {
 		varying vec4 v_vColor;
 		varying vec3 v_vPos;
 		varying vec3 v_vNorm;
+		varying vec3 v_Intersect;
 
-		void main() {			
+		void main() {		
+			vec3 waterPos = vec3(a_vCoords.x, 0.808494, a_vCoords.z);
+			
+			float offsetFromX = 0.1 * sin(waterPos.x + 0.005 * u_totalTimeElapsed);
+			float offsetFromZ = 0.1 * sin(waterPos.z + 0.005 * u_totalTimeElapsed / 1.4);
+			vec3 offsetCoords = vec3(waterPos.x, waterPos.y + offsetFromX + offsetFromZ, waterPos.z);
+
+			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
+			vec3 alpha = vec3(1.0, 0.2 * cos(waterPos.x), 0.0);
+			vec3 beta = vec3(0.0, 0.2 * cos(waterPos.z), 1.0);
+			v_vNorm = normalize(vec3(u_nMatrix * vec4(cross(beta, alpha), 1.0)));
+
+			vec3 refractRay = refract(normalize(offsetCoords), v_vNorm, u_IOR_ratio);
+			float t = -offsetCoords.y / refractRay.y;
+			vec3 intersect = offsetCoords + (t * refractRay);
+
+			vec4 v4_Intersect = u_mvMatrix * vec4(intersect, 1.0);
 			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0);
+			
 			v_vPos = vec3(camSpacePos);
+			v_Intersect = vec3(u_pMatrix * v4_Intersect); 
 			gl_Position = u_pMatrix * camSpacePos;
 			v_vColor = vec4((a_vNorm), 1.0);
 			v_vNorm = normalize(vec3(u_nMatrix * vec4(a_vNorm, 1.0)));
@@ -295,6 +318,7 @@ function initGL() {
 	`;
 
 	let frag_shade = `
+		#extension GL_OES_standard_derivatives : enable
 		precision mediump float;
 
 		uniform vec3 u_lightPos;
@@ -303,11 +327,12 @@ function initGL() {
 		varying vec4 v_vColor;
 		varying vec3 v_vPos;
 		varying vec3 v_vNorm;
+		varying vec3 v_Intersect;
 
 		void main() {
 			vec4 intermed = u_mvMatrix * vec4(u_lightPos, 1.0);
 			vec3 camSpaceLightPos = vec3(intermed);
-
+			float caustic = abs(dFdx(v_vPos.x) * dFdy(v_vPos.z) / (dFdx(v_Intersect.x) * dFdy(v_Intersect.z)));
 			// basic diffuse shader implementation
 
 			vec3 Kd = vec3(1.0, 1.0, 1.0);
@@ -316,6 +341,7 @@ function initGL() {
 			float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
 
 			gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
+			gl_FragColor = gl_FragColor + caustic;
 		}
 	`; 
 
