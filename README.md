@@ -13,7 +13,7 @@ Rendering Water Caustics using WebGL and 3D objects made in Blender
 [NVIDIA Water Simulation Physics Models](https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models) \
 [WebGL Reference Sheet](https://www.khronos.org/files/webgl/webgl-reference-card-1_0.pdf) \
 [Creating Transparent Objects](https://subscription.packtpub.com/book/game-development/9781849691727/6/ch06lvl1sec86/creating-transparent-objects) \
-[Alpha Blending for Transparency](http://learnwebgl.brown37.net/11_advanced_rendering/alpha_blending.html)
+** [Alpha Blending for Transparency](http://learnwebgl.brown37.net/11_advanced_rendering/alpha_blending.html)
 
 
 ## TODO
