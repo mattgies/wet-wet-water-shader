@@ -84,9 +84,9 @@ function setUpMVMatrix(shaderProgram) {
 	// camera space = (cam at (0, 0, 0) facing down -Z axis)
 	let camTransforms = mat4.create();
 	mat4.identity(camTransforms);
-	mat4.rotateZ(camTransforms, Math.PI / 12);
-	mat4.rotateX(camTransforms, Math.PI / 12);
-	mat4.rotateY(camTransforms, rotAmount);
+	mat4.rotateZ(camTransforms, rotAmountXZ);
+	mat4.rotateX(camTransforms, rotAmountXZ);
+	mat4.rotateY(camTransforms, rotAmountY);
 	mat4.translate(camTransforms, [0.0, 0.2, 6.0]);
 
 	mvMatrix = mat4.inverse(camTransforms);
@@ -173,17 +173,18 @@ var clearColorB = 0.7;
 var lastTime = 0;
 var elapsed;
 var rotSpeed = 0.0005;
-var rotAmount = Math.PI / 2;
+var rotAmountY = 3 * Math.PI / 4;
+var rotAmountXZ = Math.PI / 12;
 function tick() {
 	requestAnimationFrame(tick);
 
 	var timeNow = new Date().getTime();
 	if (lastTime != 0) {
 		elapsed = timeNow - lastTime;
-		rotAmount += rotSpeed * elapsed;
-		if (rotAmount > Math.PI && rotSpeed > 0 || rotAmount < Math.PI / 2 && rotSpeed < 0) {
-			rotSpeed = -rotSpeed;
-		}
+		// rotAmountY += rotSpeed * elapsed;
+		// if (rotAmountY > Math.PI && rotSpeed > 0 || rotAmountY < Math.PI / 2 && rotSpeed < 0) {
+		// 	rotSpeed = -rotSpeed;
+		// }
 		totalTimeElapsed += elapsed; // defined in the vars section at the very top of this index.js file
 	}
 	lastTime = timeNow;
@@ -203,10 +204,49 @@ function addObjectToDraw(obj_str, shaderProgram) {
 }
 
 
+
+// CAMERA ROTATION VIA MOUSE CLICK AND DRAG
+var dragging = false;
+var lastPosX;
+var lastPosY;
+function mouseDown() {
+	dragging = true;
+	lastPosX = null;
+	lastPosY = null;
+}
+
+
+function mouseUp() {
+	dragging = false;
+}
+
+
+function mouseMove(event) {
+	if (dragging) {
+		let rect = event.target.getBoundingClientRect();
+		if (lastPosX != null) {
+			rotX = event.pageX - rect.x - lastPosX;
+			rotAmountY -= rotX / 200;
+		}
+		if (lastPosY != null) {
+			rotY = event.pageY - rect.y - lastPosY;
+			rotAmountXZ += rotY / 400;
+		}
+		lastPosX = event.pageX - rect.x;
+		lastPosY = event.pageY - rect.y;
+	}
+}
+
+
 function initGL() {
 	// initGL is called on page load
 	// Initialize the GL context
 	canvas = document.querySelector("#glCanvas");
+	canvas.onmousedown = mouseDown;
+	canvas.onmouseup = mouseUp;
+	canvas.onmousemove = mouseMove;
+
+
 	gl = createGLContext(canvas);
   
 	// Only continue if WebGL is available and working
