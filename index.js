@@ -110,7 +110,7 @@ function setUpNMatrix(shaderProgram) {
 
 
 function setUpLightPos(shaderProgram) {
-	lightPos = vec3.create([0.0, 1.2, 0.0]); // object-space position of the light (converted to cam space in the frag shader)
+	lightPos = vec3.create([0.0, 2.0, 0.0]); // object-space position of the light (converted to cam space in the frag shader)
 	gl.uniform3fv(shaderProgram.lightPosUniform, lightPos);
 }
 
@@ -124,7 +124,9 @@ function setUpShaderAttribs(shaderProgram) {
 	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "a_vCoords");
 	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 	shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "a_vNorm");
-	gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+	if (shaderProgram.vertexNormalAttribute != -1) {
+		gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+	}
 }
 
 
@@ -135,11 +137,21 @@ function setUpShaderUniforms(shaderProgram) {
 	shaderProgram.lightPosUniform = gl.getUniformLocation(shaderProgram, "u_lightPos");
 	shaderProgram.totalTimeElapsedUniform = gl.getUniformLocation(shaderProgram, "u_totalTimeElapsed");
 
-	setUpMVMatrix(shaderProgram);
-	setUpProjMatrix(shaderProgram);
-	setUpNMatrix(shaderProgram);
-	setUpLightPos(shaderProgram);
-	updateTotalTimeElapsedUniform(shaderProgram);
+	if (shaderProgram.mvMatrixUniform != -1) {
+		setUpMVMatrix(shaderProgram);
+	}
+	if (shaderProgram.pMatrixUniform != -1) {
+		setUpProjMatrix(shaderProgram);
+	}
+	if (shaderProgram.nMatrixUniform != -1) {
+		setUpNMatrix(shaderProgram);
+	}
+	if (shaderProgram.lightPosUniform != -1) {
+		setUpLightPos(shaderProgram);
+	}
+	if (shaderProgram.totalTimeElapsedUniform != -1) {
+		updateTotalTimeElapsedUniform(shaderProgram);
+	}
 }
 
 
@@ -150,14 +162,17 @@ function drawScene() {
 	for (obj of objsToDraw) {
 		mesh = obj.mesh;
 		shaderProgram = obj.shaderProg;
+		usesNorms = obj.usesNorms;
 		gl.useProgram(shaderProgram);
 
 		setUpShaderAttribs(shaderProgram);
 		setUpShaderUniforms(shaderProgram);
 		
-		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
-		gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
+		if (usesNorms) {
+			gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
+			gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+		}
+		
 		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
 		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -193,13 +208,14 @@ function tick() {
 }
 
 
-function addObjectToDraw(obj_str, shaderProgram) {
+function addObjectToDraw(obj_str, shaderProgram, uses_norms) {
 	mesh = new OBJ.Mesh(obj_str);
 	OBJ.initMeshBuffers(gl, mesh);
 	
 	objsToDraw.push({
 		"mesh": mesh,
-		"shaderProg": shaderProgram
+		"shaderProg": shaderProgram,
+		"usesNorms": uses_norms
 	});
 }
 
@@ -244,6 +260,7 @@ function initGL() {
 	canvas = document.querySelector("#glCanvas");
 	canvas.onmousedown = mouseDown;
 	canvas.onmouseup = mouseUp;
+	canvas.onmouseout = mouseUp;
 	canvas.onmousemove = mouseMove;
 
 
@@ -273,24 +290,32 @@ function initGL() {
 		precision mediump float; // had to add this line because using mvMatrix in the fragment shader caused an error bc of differing precision
 
 		uniform mat4 u_mvMatrix;
-		uniform mat4 u_nMatrix;
 		uniform mat4 u_pMatrix;
-		
+		uniform mat4 u_nMatrix;
 		uniform float u_totalTimeElapsed;
-
+		
 		attribute vec3 a_vCoords;
 		attribute vec3 a_vNorm;
 
-		varying vec4 v_vColor;
 		varying vec3 v_vPos;
-		varying vec3 v_vNorm;
+		varying vec3 v_waterSurfaceNorm;
+		varying vec3 v_waterSurfacePos;
 
 		void main() {			
 			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0);
 			v_vPos = vec3(camSpacePos);
 			gl_Position = u_pMatrix * camSpacePos;
-			v_vColor = vec4((a_vNorm), 1.0);
-			v_vNorm = normalize(vec3(u_nMatrix * vec4(a_vNorm, 1.0)));
+
+
+			float offsetFromX = 0.1 * sin(a_vCoords.x + 0.005 * u_totalTimeElapsed);
+			float offsetFromZ = 0.1 * sin(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4);
+			vec3 offsetCoords = vec3(a_vCoords.x, a_vCoords.y + offsetFromX + offsetFromZ + 0.8, a_vCoords.z);
+
+			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
+			vec3 alpha = vec3(1.0, 0.1 * cos(a_vCoords.x + 0.005 * u_totalTimeElapsed), 0.0);
+			vec3 beta = vec3(0.0, 0.1 * cos(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4), 1.0);
+			v_waterSurfaceNorm = normalize(vec3(u_nMatrix * vec4(cross(beta, alpha), 1.0)));
+			v_waterSurfacePos = vec3(u_mvMatrix * vec4(offsetCoords, 1.0));
 		}
 	`;
 
@@ -299,23 +324,61 @@ function initGL() {
 
 		uniform vec3 u_lightPos;
 		uniform mat4 u_mvMatrix;
+		uniform mat4 u_nMatrix;
+		uniform mat4 u_pMatrix;
+		uniform float u_totalTimeElapsed;
 
-		varying vec4 v_vColor;
-		varying vec3 v_vPos;
-		varying vec3 v_vNorm;
+		varying vec3 v_vPos; // camera-space pos of the fragment, interpolated from cam-space vert positions
+		varying vec3 v_waterSurfaceNorm; // camera-space direction of the normal of the part of the water surface that's directly above the current fragment
+		varying vec3 v_waterSurfacePos; // camera-space position of the part of the water's surface that's directly above the current fragement
 
 		void main() {
 			vec4 intermed = u_mvMatrix * vec4(u_lightPos, 1.0);
 			vec3 camSpaceLightPos = vec3(intermed);
 
-			// basic diffuse shader implementation
 
-			vec3 Kd = vec3(1.0, 1.0, 1.0);
-			float I = 1.0;
-			float maxDot = max(0.0, dot(v_vNorm, camSpaceLightPos - v_vPos));
-			float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
+			
+			// diffuse shader
+			vec3 Kd = vec3(0.0, 0.3, 0.5);
+			float I = 8.0;
+			
+			// dot product that's independent of light position
+			vec3 camSpacePosOfWorldSpaceUpVector = vec3(u_nMatrix * vec4(0.0, 1.0, 0.0, 1.0));
+			float testDot = dot(v_waterSurfaceNorm, camSpacePosOfWorldSpaceUpVector);
 
-			gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
+			vec3 vecBetweenWaterSurfaceAndLight = camSpaceLightPos - v_waterSurfacePos;
+			float distWaterSurfaceToLight = length(vecBetweenWaterSurfaceAndLight);
+			float distWaterSurfaceToGround = v_waterSurfacePos.y - v_vPos.y;
+
+			// dot product that accounts for light position
+			// float maxDot = max(0.0, dot(v_vNorm, camSpaceLightPos - v_vPos));
+			// float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
+			float rSquared = (distWaterSurfaceToLight * distWaterSurfaceToLight + distWaterSurfaceToGround * distWaterSurfaceToGround * distWaterSurfaceToGround * distWaterSurfaceToGround);
+			// float rSquared = (distWaterSurfaceToLight + distWaterSurfaceToGround) * (distWaterSurfaceToLight + distWaterSurfaceToGround);
+			// rSquared = distWaterSurfaceToLight * distWaterSurfaceToLight;
+
+			// DEBUG:
+			gl_FragColor = vec4(v_waterSurfaceNorm, 1.0);
+
+			if (rSquared > 4.0) {
+				gl_FragColor = vec4(0.0, 0.2, 0.65, 1.0);
+			}
+			else if (rSquared > 3.5) {
+				gl_FragColor = vec4(0.0, 0.35, 0.65, 1.0);
+			}
+			else if (rSquared > 3.3) {
+				gl_FragColor = vec4(0.0, 0.45, 0.7, 1.0);
+			}
+			else if (rSquared > 3.2) {
+				gl_FragColor = vec4(0.0, 0.5, 0.8, 1.0);
+			}
+			else {
+				gl_FragColor = vec4(0.0, 0.6, 0.95, 1.0);
+			}
+
+			// gl_FragColor = vec4(rSquared, rSquared, rSquared, 1.0);
+
+			gl_FragColor = vec4((I / rSquared * sqrt(testDot) * Kd), 1.0);
 		}
 	`; 
 
@@ -347,8 +410,8 @@ function initGL() {
 			vec3 offsetCoords = vec3(a_vCoords.x, a_vCoords.y + offsetFromX + offsetFromZ, a_vCoords.z);
 
 			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
-			vec3 alpha = vec3(1.0, 0.2 * cos(a_vCoords.x), 0.0);
-			vec3 beta = vec3(0.0, 0.2 * cos(a_vCoords.z), 1.0);
+			vec3 alpha = vec3(1.0, 0.1 * cos(a_vCoords.x + 0.005 * u_totalTimeElapsed), 0.0);
+			vec3 beta = vec3(0.0, 0.1 * cos(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4), 1.0);
 			v_vNorm = normalize(vec3(u_nMatrix * vec4(cross(beta, alpha), 1.0)));
 			
 			vec4 camSpacePos = u_mvMatrix * vec4(offsetCoords, 1.0);
@@ -364,43 +427,9 @@ function initGL() {
 		}
 	`;
 
-	// frag_shade = `
-	// 	#extension GL_OES_standard_derivatives : enable
-	// 	precision mediump float;
-
-	// 	uniform vec3 u_lightPos;
-	// 	uniform mat4 u_mvMatrix;
-
-	// 	varying vec4 v_vColor;
-	// 	varying vec3 v_vPos;
-	// 	varying vec3 v_vNorm;
-
-	// 	// TEST
-	// 	varying vec3 v_vPosOld;
-	// 	// END TEST
-
-	// 	void main() {
-	// 		vec4 intermed = u_mvMatrix * vec4(u_lightPos, 1.0);
-	// 		vec3 camSpaceLightPos = vec3(intermed);
-
-	// 		// TEST
-	// 		dFdx(1.0);
-	// 		// END TEST
-
-	// 		// basic diffuse shader implementation
-	// 		vec3 Kd = vec3(0.5, 0.8, 0.9);
-	// 		float I = 0.5;
-	// 		float maxDot = max(0.0, dot(v_vNorm, normalize(camSpaceLightPos - v_vPos)));
-	// 		float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
-
-	// 		gl_FragColor = vec4((I / rSquared * maxDot * Kd), 0.5);
-	// 	}
-	// `; 
-
-
-
 
 	frag_shade = `
+		#extension GL_OES_standard_derivatives : enable // extension enables use of dFdx and dFdy
 		precision mediump float;
 
 		uniform vec3 u_lightPos;
@@ -422,10 +451,10 @@ function initGL() {
 
 				float I = 20.0;
 				float vI = I / (pow(length(vi),2.0) / 5.0 + 5.0);
-				float uBeta = 0.2; // line 106 of pa2_webgl.js
-				float uIOR = 5.0; // line 105 of pa2_webgl.js
-				float uAmbient = 0.1; // line 141 of pa2_webgl.js
-				vec3 uDiffuseColor = vec3(0.0/255.0, 109.0/255.0, 143.0/255.0);
+				float uBeta = 0.5; // line 106 of pa2_webgl.js
+				float uIOR = 2.0; // line 105 of pa2_webgl.js
+				float uAmbient = 0.2; // line 141 of pa2_webgl.js
+				vec3 uDiffuseColor = vec3(0.0/255.0, 85.0/255.0, 102.0/255.0);
 				vec3 uSpecularColor = vec3(1.0, 1.0, 1.0);
 
 				// F(i,h)
@@ -460,21 +489,21 @@ function initGL() {
 				
 				vec3 right_term = uAmbient * uDiffuseColor;
 				vec3 three_d_frag_color = left_term + right_term;
-				gl_FragColor = vec4(three_d_frag_color, 0.8);
+				gl_FragColor = vec4(three_d_frag_color, 0.4);
 			}
 			else {
 				float uAmbient = 0.1; // line 141 of pa2_webgl.js
-				vec3 uDiffuseColor = vec3(200/255, 109/255, 143/255);
+				vec3 uDiffuseColor = vec3(0.0/255.0, 109.0/255.0, 143.0/255.0);
 				vec3 three_d_frag_color = uAmbient * uDiffuseColor;
-            	gl_FragColor = vec4(three_d_frag_color, 0.7);
+            	gl_FragColor = vec4(three_d_frag_color, 0.4);
 			}
 		}
 	`; 
 
 	createShaderProgram(waterShaderProgram, vert_shade, frag_shade);
 
-	addObjectToDraw(pool_sides_and_bottom, basicShaderProgram);
-	addObjectToDraw(one_plane, waterShaderProgram);
+	addObjectToDraw(pool_sides_and_bottom, basicShaderProgram, false);
+	addObjectToDraw(one_plane, waterShaderProgram, true);
 
 	tick();
   }
