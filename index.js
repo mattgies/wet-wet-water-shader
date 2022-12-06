@@ -346,24 +346,63 @@ function initGL() {
 		uniform mat4 u_pMatrix;
 		uniform mat4 u_nMatrix;
 		uniform float u_totalTimeElapsed;
-		
+		uniform vec3 u_lightPos;
+
+		uniform sampler2D u_waterNormalMap;
+		uniform sampler2D u_waterDispMap; 
+
 		attribute vec3 a_vCoords;
 		attribute vec2 a_vTexCoords;
 
 		varying vec3 v_vPos;
 		varying vec2 v_vTexCoords;
+		varying vec3 v_newIntersect;
+		varying vec3 v_oldIntersect;
 
-		void main() {			
+		void main() {	
+			vec2 texCoordsWithTimeOffset = a_vTexCoords + vec2(u_totalTimeElapsed / 4500.0, u_totalTimeElapsed / 4500.0);
+			vec2 vTexCoords = texCoordsWithTimeOffset;
+
+			vec3 oldlightDirection = vec3(a_vCoords.x, 0.808494 - (-0.368807), a_vCoords.z) - u_lightPos; // light direction
+			vec3 newlightDirection = vec3(a_vCoords.x, 0.808494 - (-0.368807) + texture2D(u_waterDispMap, vTexCoords).g, a_vCoords.z) - u_lightPos;
+			// texture2D(u_waterNormalMap, vTexCoords) gives the normal at v_vTexCoords as vec4
+			// 0.808494 - (-0.368807)
+			
+			vec3 oldRefractRay = refract(normalize(oldlightDirection), vec3(0.0, 1.0, 0.0), 1.0 / 1.33);
+			// vec3 oldRefractRay = refract(normalize(a_vCoords + vec3(0.0, .808494 - a_vCoords.y, 0.0)), vec3(0.0, 1.0, 0.0), 1.0 / 1.33);
+			float oldt = (0.808494 - (-0.368807)) / oldRefractRay.y;
+			vec3 oldIntersect = vec3(a_vCoords.x, 0.808494 - (-0.368807), a_vCoords.z) + (oldt * oldRefractRay);
+
+			vec3 newNormal = vec3(texture2D(u_waterNormalMap, vTexCoords));
+			if (dot(newlightDirection, newNormal) < 0.0) {
+				newNormal = -1.0 * newNormal;
+			}
+			
+			vec3 newRefractRay = refract(normalize(newlightDirection), vec3(texture2D(u_waterNormalMap, vTexCoords)), 1.0 / 1.33);
+			// vec3 newRefractRay = refract(normalize(vec3(a_vCoords.x, 0.808494 - (-0.368807) + texture2D(u_waterDispMap, vTexCoords).g, a_vCoords.z)), vec3(texture2D(u_waterNormalMap, vTexCoords)), 1.0 / 1.33);
+			float newt = (0.808494 - (-0.368807) + texture2D(u_waterDispMap, vTexCoords).g) / newRefractRay.y;
+
+			vec3 newIntersect = vec3(a_vCoords.x, 															
+									 0.808494 - (-0.368807) + texture2D(u_waterDispMap, vTexCoords).g, 	
+									 a_vCoords.z) + (newt * newRefractRay);									
+
+			vec4 transformed_oldInt = u_mvMatrix * vec4(oldIntersect, 1.0);
+			vec4 transformed_newInt = u_mvMatrix * vec4(newIntersect, 1.0);
+			
+			v_oldIntersect = vec3(u_pMatrix * transformed_oldInt);
+			v_newIntersect = vec3(u_pMatrix * transformed_newInt);
+
 			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0);
-			v_vPos = vec3(camSpacePos);
+			v_vPos = vec3(camSpacePos); 
 			gl_Position = u_pMatrix * camSpacePos;
 
-			vec2 texCoordsWithTimeOffset = a_vTexCoords + vec2(u_totalTimeElapsed / 4500.0, u_totalTimeElapsed / 4500.0);
 			v_vTexCoords = texCoordsWithTimeOffset;
 		}
 	`;
 
 	let frag_shade = `
+		#extension GL_OES_standard_derivatives : enable // extension enables use of dFdx and dFdy
+
 		precision mediump float;
 
 		uniform vec3 u_lightPos;
@@ -376,6 +415,9 @@ function initGL() {
 
 		varying vec3 v_vPos; // camera-space pos of the fragment, interpolated from cam-space vert positions
 		varying vec2 v_vTexCoords;
+
+		varying vec3 v_newIntersect;
+		varying vec3 v_oldIntersect;
 
 		void main() {
 			vec3 aboveWaterSurfaceNormal = normalize(vec3(u_nMatrix * texture2D(u_waterNormalMap, v_vTexCoords))); // this assumes that the normal map texture has 1.0 opacity (so that the w value is 1.0 for when it's multiplied by the normal matrix)
@@ -407,9 +449,23 @@ function initGL() {
 			// 	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 			// 	return;
 			// }
-			gl_FragColor = vec4(((I / rSquared) * maxDot * Kd), 1.0);
+			// gl_FragColor = vec4(((I / rSquared) * maxDot * Kd), 1.0);
+			// // gl_FragColor = texture2D(u_waterNormalMap, v_vTexCoords);
 
-			// gl_FragColor = texture2D(u_waterNormalMap, v_vTexCoords);
+			gl_FragColor = vec4(0.2, 0.2, 0.2, 1.0);
+
+
+			float oldArea = length(dFdx(v_oldIntersect)) * length(dFdy(v_oldIntersect));
+			float newArea = length(dFdx(v_newIntersect)) * length(dFdy(v_newIntersect));
+			// float caustic = oldArea / newArea * 0.3; 
+			// float caustic = 0.1 * abs((dFdx(v_vPos.x) * dFdy(v_vPos.y)) / (dFdx(v_newIntersect.x) * dFdy(v_newIntersect.y)));
+
+			gl_FragColor = gl_FragColor + (oldArea / newArea );
+			// gl_FragColor = vec4(vec3(gl_FragColor + caustic), 1.0);
+			// vec3 colors = vec3(oldArea / newArea * 0.6);
+			// gl_FragColor = vec4(oldArea / newArea);
+
+			
 		}
 	`; 
 
