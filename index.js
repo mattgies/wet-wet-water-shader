@@ -295,7 +295,7 @@ function initGL() {
 			vec3 waterPos = vec3(a_vCoords.x, 0.808494, a_vCoords.z);
 			
 			float offsetFromX1 = 0.05 * sin(waterPos.x + 0.005 * u_totalTimeElapsed);
-			float offsetFromX2 = 0.05 * -sin(waterPos.x + 0.007 * u_totalTimeElapsed);
+			float offsetFromX2 = 0.05 * sin(waterPos.x + 0.007 * u_totalTimeElapsed);
 
 			float offsetFromZ1 = 0.06 * sin(waterPos.z + 0.005 * u_totalTimeElapsed / 1.4);
 			
@@ -305,7 +305,7 @@ function initGL() {
 
 			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
 			vec3 alpha = vec3(1.0, 0.05 * cos(waterPos.x + 0.005 * u_totalTimeElapsed)
-								 - 0.05 * cos(waterPos.x + 0.007 * u_totalTimeElapsed) 
+								 + 0.05 * cos(waterPos.x + 0.007 * u_totalTimeElapsed) 
 								 + 0.05 * cos(waterPos.x +  waterPos.z + .003 * u_totalTimeElapsed) , 0.0);
 			vec3 beta = vec3(0.0, 0.06 * cos(waterPos.z + 0.005 * u_totalTimeElapsed / 1.4) 
 								+ 0.05 * cos(waterPos.x +  waterPos.z + .003 * u_totalTimeElapsed)
@@ -350,11 +350,11 @@ function initGL() {
 			float maxDot = max(0.0, dot(v_vNorm, camSpaceLightPos - v_vPos));
 			float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
 
-			// gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
+			gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
 			float oldArea = length(dFdx(v_vPos)) * length(dFdy(v_vPos));
 			float newArea = length(dFdx(v_Intersect)) * length(dFdy(v_vPos));
 			float caustic = oldArea / newArea * 0.2;
-			gl_FragColor = vec4(caustic, caustic, caustic, 1.0);
+			gl_FragColor = caustic + gl_FragColor;
 		}
 	`; 
 
