@@ -358,9 +358,8 @@ function initGL() {
 			v_vPos = vec3(camSpacePos);
 			gl_Position = u_pMatrix * camSpacePos;
 
-			vec2 texCoordsRotated = vec2(a_vTexCoords.y / 2., a_vTexCoords.x / 2.);
-			vec2 texCoordsRotatedWithTimeOffset = vec2(texCoordsRotated.x + u_totalTimeElapsed / 4500., texCoordsRotated.y + u_totalTimeElapsed / 4500.);
-			v_vTexCoords = texCoordsRotatedWithTimeOffset; // textureCoordinates are based on the time-offset and u/v rotation
+			vec2 texCoordsWithTimeOffset = a_vTexCoords + vec2(u_totalTimeElapsed / 4500.0, u_totalTimeElapsed / 4500.0);
+			v_vTexCoords = texCoordsWithTimeOffset;
 		}
 	`;
 
@@ -380,12 +379,6 @@ function initGL() {
 
 		void main() {
 			vec3 aboveWaterSurfaceNormal = normalize(vec3(u_nMatrix * texture2D(u_waterNormalMap, v_vTexCoords))); // this assumes that the normal map texture has 1.0 opacity (so that the w value is 1.0 for when it's multiplied by the normal matrix)
-			
-			vec3 rotationCorrectedWaterSurfaceNormal = vec3(texture2D(u_waterNormalMap, v_vTexCoords));
-			rotationCorrectedWaterSurfaceNormal = vec3(rotationCorrectedWaterSurfaceNormal.z, rotationCorrectedWaterSurfaceNormal.y, rotationCorrectedWaterSurfaceNormal.x);
-
-			aboveWaterSurfaceNormal = normalize(vec3(u_nMatrix * vec4(rotationCorrectedWaterSurfaceNormal, 1.0)));
-
 
 			float aboveWaterSurfaceOffset = texture2D(u_waterDispMap, v_vTexCoords).y;
 
@@ -439,12 +432,11 @@ function initGL() {
 
 		void main() {
 			// TEXTURE COORDINATES
-			vec2 texCoordsRotated = vec2(a_vTexCoords.y / 2., a_vTexCoords.x / 2.);
-			vec2 texCoordsRotatedWithTimeOffset = vec2(texCoordsRotated.x + u_totalTimeElapsed / 4500., texCoordsRotated.y + u_totalTimeElapsed / 4500.);
-			v_vTexCoords = texCoordsRotatedWithTimeOffset; // textureCoordinates are based on the time-offset and u/v rotation
+			vec2 texCoordsWithTimeOffset = a_vTexCoords + vec2(u_totalTimeElapsed / 4500.0, u_totalTimeElapsed / 4500.0);
+			v_vTexCoords = texCoordsWithTimeOffset;
 
 			// OFFSET FROM DISPLACMENT MAP
-			vec4 dispMapOffset = texture2D(u_waterDispMap, texCoordsRotatedWithTimeOffset);
+			vec4 dispMapOffset = texture2D(u_waterDispMap, texCoordsWithTimeOffset);
 			vec4 offsetCoords = vec4(a_vCoords.x, a_vCoords.y + 0.5 * dispMapOffset.y, a_vCoords.z, 1.0);
 			vec4 camSpacePos = u_mvMatrix * offsetCoords;
 			v_vPos = vec3(camSpacePos);
@@ -472,11 +464,6 @@ function initGL() {
 		void main() {
 			vec3 waterSurfaceNormal = normalize(vec3(u_nMatrix * texture2D(u_waterNormalMap, v_vTexCoords))); // this assumes that the normal map texture has 1.0 opacity (so that the w value is 1.0 for when it's multiplied by the normal matrix)
 			
-			vec3 rotationCorrectedWaterSurfaceNormal = vec3(texture2D(u_waterNormalMap, v_vTexCoords));
-			rotationCorrectedWaterSurfaceNormal = vec3(rotationCorrectedWaterSurfaceNormal.z, rotationCorrectedWaterSurfaceNormal.y, rotationCorrectedWaterSurfaceNormal.x);
-
-			waterSurfaceNormal = normalize(vec3(u_nMatrix * vec4(rotationCorrectedWaterSurfaceNormal, 1.0)));
-
 			vec3 lightPosInCamSpace = vec3(u_mvMatrix * vec4(u_lightPos, 1.0));
 			vec3 vi = lightPosInCamSpace - v_vPos;
 
