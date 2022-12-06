@@ -1,7 +1,20 @@
 # Matt Goose and Caro Wang CS112 Final Project
-Rendering Water Caustics using WebGL and 3D objects made in Blender
+Rendering Water Caustics using WebGL and 3D objects made in Blender  
 
-## Helpful Links
+## IMPORTANT SETUP BEFORE RENDERING
+You must initialize an http server, otherwise the textures won't work and the canvas will not render at all  
+  
+For Mac and Linux, run  
+  
+```python3 -m http.server```  
+  
+in the terminal from our project directory, and then go to 
+  
+```localhost:####```  
+  
+in your browser where "####" is the port number specified by your terminal  
+
+## Links we referenced 
 [WebGL Water Demo](http://madebyevan.com/webgl-water) \
 [Evan Wallace Medium Article for Water Caustics](https://medium.com/@evanwallace/rendering-realtime-caustics-in-webgl-2a99a29a0b2c) \
 [Medium Article for a more general water demo](https://medium.com/@martinRenou/real-time-rendering-of-water-caustics-59cda1d74aa) \
