@@ -346,14 +346,33 @@ function initGL() {
 		uniform mat4 u_pMatrix;
 		uniform mat4 u_nMatrix;
 		uniform float u_totalTimeElapsed;
+
+		uniform sampler2D u_waterNormalMap;
+		uniform sampler2D u_waterDispMap;
+
+		uniform vec3 u_lightPos;
 		
 		attribute vec3 a_vCoords;
-		attribute vec2 a_vTexCoords;
+		attribute vec2 a_vTexCoords; // what is this?
 
 		varying vec3 v_vPos;
 		varying vec2 v_vTexCoords;
 
 		void main() {			
+			vec3 lightDirection = a_vCoords - u_lightPos;
+			
+			// where is the normal vector???
+
+			// old position comes from where the light would hit if the water was not displaced
+				// aka flat plane, the normal points straight up
+			vec3 oldRefractray = refract(normalize(lightDirection), vec3(0.0, 1.0, 0.0), 1.0 / 1.33); 
+			// float oldt =  ; // find how far along the ray the intersection will be
+			// vec3 intersect = ; // find the actual point of intersection
+
+			// new position comes from where the light will actually hit now that it is displaced
+			// vec3 newRefractRay = refract(normalize(lightDirection), NORMAL_VECTOR, 1.0 / 1.33 );
+
+
 			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0);
 			v_vPos = vec3(camSpacePos);
 			gl_Position = u_pMatrix * camSpacePos;
@@ -398,7 +417,7 @@ function initGL() {
 			
 			float maxDot = max(0.0, dot( aboveWaterSurfaceNormal, waterSurfaceToLight ) );
 			
-			gl_FragColor = vec4(maxDot, maxDot, maxDot, 1.0);
+			// gl_FragColor = vec4(maxDot, maxDot, maxDot, 1.0);
 			// if (maxDot > 0.0) {
 			// 	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 			// }
@@ -409,7 +428,9 @@ function initGL() {
 			// }
 			gl_FragColor = vec4(((I / rSquared) * maxDot * Kd), 1.0);
 
-			// gl_FragColor = texture2D(u_waterNormalMap, v_vTexCoords);
+			gl_FragColor = texture2D(u_waterNormalMap, v_vTexCoords);
+
+			gl_FragColor = vec4(0.2, 0.2, 0.2, 1.0);
 		}
 	`; 
 
