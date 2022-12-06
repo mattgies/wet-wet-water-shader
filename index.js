@@ -427,12 +427,20 @@ function initGL() {
 
 			// basic diffuse shader implementation
 
-			vec3 Kd = vec3(1.0, 1.0, 1.0);
-			float I = 1.0;
-			float maxDot = max(0.0, dot(v_vNorm, camSpaceLightPos - v_vPos));
-			float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
+			// vec3 Kd = vec3(1.0, 1.0, 1.0);
+			// float I = 1.0;
+			// float maxDot = max(0.0, dot(v_vNorm, camSpaceLightPos - v_vPos));
+			// float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
 
-			gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
+			// gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
+
+			float oldArea = length(dFdx(v_oldIntersect)) * length(dFdy(v_oldIntersect));
+			float newArea = length(dFdx(v_newIntersect)) * length(dFdy(v_newIntersect));
+			float caustic = oldArea / newArea * 0.8;
+
+			gl_FragColor = vec4(0.5, 0.5, 0.5, 1.0);
+
+			gl_FragColor = gl_FragColor + caustic;
 		}
 	`; 
 
