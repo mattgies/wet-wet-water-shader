@@ -120,12 +120,55 @@ function updateTotalTimeElapsedUniform(shaderProgram) {
 }
 
 
+var textures = [];
+function setUpWaterNormalMap(shaderProgram) {
+	image_ids = ["water_normal_map", "water_displacement_map"]
+	
+	for (image_id of image_ids) {
+		var texture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+		gl.texImage2D(
+			gl.TEXTURE_2D, // TARGET = texture type
+			0, // LEVEL = lod
+			gl.RGBA,
+			gl.RGBA,
+			gl.UNSIGNED_BYTE,
+			document.getElementById(image_id)
+		);
+
+		textures.push(texture);
+	}
+
+	gl.uniform1i(shaderProgram.waterNormalMapUniform, 0);
+	gl.uniform1i(shaderProgram.waterDispMapUniform, 1);
+
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, textures[0]);
+	gl.activeTexture(gl.TEXTURE1);
+	gl.bindTexture(gl.TEXTURE_2D, textures[1]);
+}
+
+
 function setUpShaderAttribs(shaderProgram) {
 	shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "a_vCoords");
-	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+	if (shaderProgram.vertexPositionAttribute != -1) {
+		gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+	}
+	
 	shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "a_vNorm");
 	if (shaderProgram.vertexNormalAttribute != -1) {
 		gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+	}
+
+	shaderProgram.vertexTextureAttribute = gl.getAttribLocation(shaderProgram, "a_vTexCoords");
+	if (shaderProgram.vertexTextureAttribute != -1) {
+		gl.enableVertexAttribArray(shaderProgram.vertexTextureAttribute);
 	}
 }
 
@@ -136,6 +179,8 @@ function setUpShaderUniforms(shaderProgram) {
 	shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "u_nMatrix");
 	shaderProgram.lightPosUniform = gl.getUniformLocation(shaderProgram, "u_lightPos");
 	shaderProgram.totalTimeElapsedUniform = gl.getUniformLocation(shaderProgram, "u_totalTimeElapsed");
+	shaderProgram.waterNormalMapUniform = gl.getUniformLocation(shaderProgram, "u_waterNormalMap");
+	shaderProgram.waterDispMapUniform = gl.getUniformLocation(shaderProgram, "u_waterDispMap");
 
 	if (shaderProgram.mvMatrixUniform != -1) {
 		setUpMVMatrix(shaderProgram);
@@ -152,6 +197,9 @@ function setUpShaderUniforms(shaderProgram) {
 	if (shaderProgram.totalTimeElapsedUniform != -1) {
 		updateTotalTimeElapsedUniform(shaderProgram);
 	}
+	if (shaderProgram.waterNormalMapUniform != -1 && shaderProgram.waterDispMapUniform != -1) {
+		setUpWaterNormalMap(shaderProgram);
+	}
 }
 
 
@@ -167,6 +215,7 @@ function drawScene() {
 
 		setUpShaderAttribs(shaderProgram);
 		setUpShaderUniforms(shaderProgram);
+
 		
 		if (usesNorms) {
 			gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
@@ -176,7 +225,11 @@ function drawScene() {
 		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
 		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
+		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.textureBuffer);
+		gl.vertexAttribPointer(shaderProgram.vertexTextureAttribute, mesh.textureBuffer.itemSize /* 2 */, gl.FLOAT, false, 0, 0);
+		
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+
 		gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 	}
 }
@@ -295,27 +348,19 @@ function initGL() {
 		uniform float u_totalTimeElapsed;
 		
 		attribute vec3 a_vCoords;
-		attribute vec3 a_vNorm;
+		attribute vec2 a_vTexCoords;
 
 		varying vec3 v_vPos;
-		varying vec3 v_waterSurfaceNorm;
-		varying vec3 v_waterSurfacePos;
+		varying vec2 v_vTexCoords;
 
 		void main() {			
 			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0);
 			v_vPos = vec3(camSpacePos);
 			gl_Position = u_pMatrix * camSpacePos;
 
-
-			float offsetFromX = 0.1 * sin(a_vCoords.x + 0.005 * u_totalTimeElapsed);
-			float offsetFromZ = 0.1 * sin(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4);
-			vec3 offsetCoords = vec3(a_vCoords.x, a_vCoords.y + offsetFromX + offsetFromZ + 0.8, a_vCoords.z);
-
-			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
-			vec3 alpha = vec3(1.0, 0.1 * cos(a_vCoords.x + 0.005 * u_totalTimeElapsed), 0.0);
-			vec3 beta = vec3(0.0, 0.1 * cos(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4), 1.0);
-			v_waterSurfaceNorm = normalize(vec3(u_nMatrix * vec4(cross(beta, alpha), 1.0)));
-			v_waterSurfacePos = vec3(u_mvMatrix * vec4(offsetCoords, 1.0));
+			vec2 texCoordsRotated = vec2(a_vTexCoords.y / 2., a_vTexCoords.x / 2.);
+			vec2 texCoordsRotatedWithTimeOffset = vec2(texCoordsRotated.x + u_totalTimeElapsed / 4500., texCoordsRotated.y + u_totalTimeElapsed / 4500.);
+			v_vTexCoords = texCoordsRotatedWithTimeOffset; // textureCoordinates are based on the time-offset and u/v rotation
 		}
 	`;
 
@@ -327,12 +372,16 @@ function initGL() {
 		uniform mat4 u_nMatrix;
 		uniform mat4 u_pMatrix;
 		uniform float u_totalTimeElapsed;
+		uniform sampler2D u_waterNormalMap;
 
 		varying vec3 v_vPos; // camera-space pos of the fragment, interpolated from cam-space vert positions
-		varying vec3 v_waterSurfaceNorm; // camera-space direction of the normal of the part of the water surface that's directly above the current fragment
-		varying vec3 v_waterSurfacePos; // camera-space position of the part of the water's surface that's directly above the current fragement
+		varying vec2 v_vTexCoords;
 
 		void main() {
+			gl_FragColor = texture2D(u_waterNormalMap, v_vTexCoords);
+			gl_FragColor = vec4(v_vTexCoords, 0.0, 1.0);
+			return;
+
 			vec4 intermed = u_mvMatrix * vec4(u_lightPos, 1.0);
 			vec3 camSpaceLightPos = vec3(intermed);
 
@@ -343,42 +392,24 @@ function initGL() {
 			float I = 8.0;
 			
 			// dot product that's independent of light position
-			vec3 camSpacePosOfWorldSpaceUpVector = vec3(u_nMatrix * vec4(0.0, 1.0, 0.0, 1.0));
-			float testDot = dot(v_waterSurfaceNorm, camSpacePosOfWorldSpaceUpVector);
+			// vec3 camSpacePosOfWorldSpaceUpVector = vec3(u_nMatrix * vec4(0.0, 1.0, 0.0, 1.0));
+			// float testDot = dot(v_waterSurfaceNorm, camSpacePosOfWorldSpaceUpVector);
 
-			vec3 vecBetweenWaterSurfaceAndLight = camSpaceLightPos - v_waterSurfacePos;
-			float distWaterSurfaceToLight = length(vecBetweenWaterSurfaceAndLight);
-			float distWaterSurfaceToGround = v_waterSurfacePos.y - v_vPos.y;
+			// vec3 vecBetweenWaterSurfaceAndLight = camSpaceLightPos - v_waterSurfacePos;
+			// float distWaterSurfaceToLight = length(vecBetweenWaterSurfaceAndLight);
+			// float distWaterSurfaceToGround = v_waterSurfacePos.y - v_vPos.y;
 
 			// dot product that accounts for light position
 			// float maxDot = max(0.0, dot(v_vNorm, camSpaceLightPos - v_vPos));
 			// float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
-			float rSquared = (distWaterSurfaceToLight * distWaterSurfaceToLight + distWaterSurfaceToGround * distWaterSurfaceToGround * distWaterSurfaceToGround * distWaterSurfaceToGround);
+			// float rSquared = (distWaterSurfaceToLight * distWaterSurfaceToLight + distWaterSurfaceToGround * distWaterSurfaceToGround * distWaterSurfaceToGround * distWaterSurfaceToGround);
 			// float rSquared = (distWaterSurfaceToLight + distWaterSurfaceToGround) * (distWaterSurfaceToLight + distWaterSurfaceToGround);
 			// rSquared = distWaterSurfaceToLight * distWaterSurfaceToLight;
 
 			// DEBUG:
-			gl_FragColor = vec4(v_waterSurfaceNorm, 1.0);
+			// gl_FragColor = vec4(v_waterSurfaceNorm, 1.0);
 
-			if (rSquared > 4.0) {
-				gl_FragColor = vec4(0.0, 0.2, 0.65, 1.0);
-			}
-			else if (rSquared > 3.5) {
-				gl_FragColor = vec4(0.0, 0.35, 0.65, 1.0);
-			}
-			else if (rSquared > 3.3) {
-				gl_FragColor = vec4(0.0, 0.45, 0.7, 1.0);
-			}
-			else if (rSquared > 3.2) {
-				gl_FragColor = vec4(0.0, 0.5, 0.8, 1.0);
-			}
-			else {
-				gl_FragColor = vec4(0.0, 0.6, 0.95, 1.0);
-			}
-
-			// gl_FragColor = vec4(rSquared, rSquared, rSquared, 1.0);
-
-			gl_FragColor = vec4((I / rSquared * sqrt(testDot) * Kd), 1.0);
+			// gl_FragColor = vec4((I / rSquared * sqrt(testDot) * Kd), 1.0);
 		}
 	`; 
 
@@ -388,42 +419,30 @@ function initGL() {
 		precision mediump float; // had to add this line because using mvMatrix in the fragment shader caused an error bc of differing precision
 
 		uniform mat4 u_mvMatrix;
-		uniform mat4 u_nMatrix;
 		uniform mat4 u_pMatrix;
-		
+		uniform mat4 u_nMatrix;
 		uniform float u_totalTimeElapsed;
+		uniform sampler2D u_waterDispMap;
 
 		attribute vec3 a_vCoords;
-		attribute vec3 a_vNorm;
+		attribute vec2 a_vTexCoords;
 
-		varying vec4 v_vColor;
 		varying vec3 v_vPos;
-		varying vec3 v_vNorm;
-
-		// TEST
-		varying vec3 v_vPosOld;
-		// END TEST
+		varying vec2 v_vTexCoords;
 
 		void main() {
-			float offsetFromX = 0.1 * sin(a_vCoords.x + 0.005 * u_totalTimeElapsed);
-			float offsetFromZ = 0.1 * sin(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4);
-			vec3 offsetCoords = vec3(a_vCoords.x, a_vCoords.y + offsetFromX + offsetFromZ, a_vCoords.z);
+			// TEXTURE COORDINATES
+			vec2 texCoordsRotated = vec2(a_vTexCoords.y / 2., a_vTexCoords.x / 2.);
+			vec2 texCoordsRotatedWithTimeOffset = vec2(texCoordsRotated.x + u_totalTimeElapsed / 4500., texCoordsRotated.y + u_totalTimeElapsed / 4500.);
+			v_vTexCoords = texCoordsRotatedWithTimeOffset; // textureCoordinates are based on the time-offset and u/v rotation
 
-			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
-			vec3 alpha = vec3(1.0, 0.1 * cos(a_vCoords.x + 0.005 * u_totalTimeElapsed), 0.0);
-			vec3 beta = vec3(0.0, 0.1 * cos(a_vCoords.z + 0.005 * u_totalTimeElapsed / 1.4), 1.0);
-			v_vNorm = normalize(vec3(u_nMatrix * vec4(cross(beta, alpha), 1.0)));
-			
-			vec4 camSpacePos = u_mvMatrix * vec4(offsetCoords, 1.0);
+			// OFFSET FROM DISPLACMENT MAP
+			vec4 dispMapOffset = texture2D(u_waterDispMap, texCoordsRotatedWithTimeOffset);
+			vec4 offsetCoords = vec4(a_vCoords.x, a_vCoords.y + 0.5 * dispMapOffset.y, a_vCoords.z, 1.0);
+			vec4 camSpacePos = u_mvMatrix * offsetCoords;
 			v_vPos = vec3(camSpacePos);
 
-			// TEST
-			v_vPosOld = vec3(gl_Position);
-			// END TEST
-
 			gl_Position = u_pMatrix * camSpacePos;
-			v_vColor = vec4((a_vNorm), 1.0);
-			// v_vNorm = vec3(u_nMatrix * vec4(a_vNorm, 1.0));
 		}
 	`;
 
@@ -434,22 +453,26 @@ function initGL() {
 
 		uniform vec3 u_lightPos;
 		uniform mat4 u_mvMatrix;
+		uniform sampler2D u_waterNormalMap;
+		uniform sampler2D u_waterDispMap;
+		uniform float u_totalTimeElapsed;
 
-		varying vec4 v_vColor;
 		varying vec3 v_vPos;
-		varying vec3 v_vNorm;
+		varying vec2 v_vTexCoords; // (u,v) tex coords which have already been adjusted with rotation and time offset
 
 		void main() {
-			vec3 vi = u_lightPos - v_vPos;
-			float normalized_n_i_dot = dot(v_vNorm / length(v_vNorm), vi / length(vi));
+			vec3 waterSurfaceNormal = vec3(texture2D(u_waterNormalMap, v_vTexCoords));
+
+			vec3 vi = u_lightPos - v_vPos; // TODO might have to convert u_LightPos to camera-space location, but it looks weird
+			float normalized_n_i_dot = dot(waterSurfaceNormal / length(waterSurfaceNormal), vi / length(vi));
 
 			if (normalized_n_i_dot > 0.0) {
 				vec3 normalized_o = - v_vPos / length(v_vPos);
-				vec3 normalized_n = v_vNorm / length(v_vNorm);
+				vec3 normalized_n = waterSurfaceNormal / length(waterSurfaceNormal);
 				vec3 normalized_i = vi / length(vi);
 				vec3 normalized_h = (normalized_i + normalized_o) / length(normalized_i + normalized_o);
 
-				float I = 20.0;
+				float I = 30.0;
 				float vI = I / (pow(length(vi),2.0) / 5.0 + 5.0);
 				float uBeta = 0.5; // line 106 of pa2_webgl.js
 				float uIOR = 2.0; // line 105 of pa2_webgl.js
