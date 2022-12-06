@@ -294,13 +294,22 @@ function initGL() {
 		void main() {			
 			vec3 waterPos = vec3(a_vCoords.x, 0.808494, a_vCoords.z);
 			
-			float offsetFromX = 0.1 * sin(waterPos.x + 0.005 * u_totalTimeElapsed);
-			float offsetFromZ = 0.1 * sin(waterPos.z + 0.005 * u_totalTimeElapsed / 1.4);
-			vec3 offsetCoords = vec3(waterPos.x, waterPos.y + offsetFromX + offsetFromZ, waterPos.z);
+			float offsetFromX1 = 0.05 * sin(waterPos.x + 0.005 * u_totalTimeElapsed);
+			float offsetFromX2 = 0.05 * -sin(waterPos.x + 0.007 * u_totalTimeElapsed);
+
+			float offsetFromZ1 = 0.06 * sin(waterPos.z + 0.005 * u_totalTimeElapsed / 1.4);
+			
+			float offsetFromXZ = 0.05 * sin(waterPos.x + waterPos.z + .003 * u_totalTimeElapsed);
+
+			vec3 offsetCoords = vec3(waterPos.x, waterPos.y + offsetFromX1 + offsetFromZ1 + offsetFromX2 + offsetFromXZ, waterPos.z);
 
 			// hard-coded recalculation for vertex normals based on the partial derivatives of the sine wave
-			vec3 alpha = vec3(1.0, 0.1 * cos(waterPos.x + 0.005 * u_totalTimeElapsed), 0.0);
-			vec3 beta = vec3(0.0, 0.1 * cos(waterPos.z + 0.005 * u_totalTimeElapsed / 1.4), 1.0);
+			vec3 alpha = vec3(1.0, 0.05 * cos(waterPos.x + 0.005 * u_totalTimeElapsed)
+								 - 0.05 * cos(waterPos.x + 0.007 * u_totalTimeElapsed) 
+								 + 0.05 * cos(waterPos.x +  waterPos.z + .003 * u_totalTimeElapsed) , 0.0);
+			vec3 beta = vec3(0.0, 0.06 * cos(waterPos.z + 0.005 * u_totalTimeElapsed / 1.4) 
+								+ 0.05 * cos(waterPos.x +  waterPos.z + .003 * u_totalTimeElapsed)
+								, 1.0);
 			v_vNorm = normalize(vec3(u_nMatrix * vec4(cross(beta, alpha), 1.0)));
 
 			vec3 refractRay = refract(normalize(offsetCoords), v_vNorm, u_IOR_ratio);
@@ -333,7 +342,7 @@ function initGL() {
 		void main() {
 			vec4 intermed = u_mvMatrix * vec4(u_lightPos, 1.0);
 			vec3 camSpaceLightPos = vec3(intermed);
-			float caustic = abs(dFdx(v_vPos.x) * dFdy(v_vPos.z) / (dFdx(v_Intersect.x) * dFdy(v_Intersect.z)));
+
 			// basic diffuse shader implementation
 
 			vec3 Kd = vec3(1.0, 1.0, 1.0);
@@ -341,8 +350,11 @@ function initGL() {
 			float maxDot = max(0.0, dot(v_vNorm, camSpaceLightPos - v_vPos));
 			float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
 
-			gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
-			gl_FragColor = gl_FragColor + caustic;
+			// gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
+			float oldArea = length(dFdx(v_vPos)) * length(dFdy(v_vPos));
+			float newArea = length(dFdx(v_Intersect)) * length(dFdy(v_vPos));
+			float caustic = oldArea / newArea * 0.2;
+			gl_FragColor = vec4(caustic, caustic, caustic, 1.0);
 		}
 	`; 
 
