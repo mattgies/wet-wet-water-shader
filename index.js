@@ -109,7 +109,7 @@ function updateNMatrixUniform(shaderProgram) {
 
 
 function setUpLightPos(shaderProgram) {
-	lightPos = vec3.create([0.0, 2.5, 0.0]); // object-space position of the light (converted to cam space in the frag shader)
+	lightPos = vec3.create([0.5, 3.0, -0.5]); // object-space position of the light (converted to cam space in the frag shader)
 	gl.uniform3fv(shaderProgram.lightPosUniform, lightPos);
 }
 
@@ -381,7 +381,6 @@ function initGL() {
 	}
 
 	addObjectToDraw(pool_sides_and_bottom, basicShaderProgram);
-	addObjectToDraw(cat_obj_string, waterShaderProgram);
 	addObjectToDraw(one_plane, waterShaderProgram);
 
 	tick();

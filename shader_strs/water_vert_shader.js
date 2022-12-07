@@ -10,6 +10,7 @@ var water_vert_shader = `
 		attribute vec3 a_vCoords;
 		attribute vec2 a_vTexCoords;
 
+		varying vec3 v_vPosWorldSpace;
 		varying vec3 v_vPos;
 		varying vec2 v_vTexCoords1;
 		varying vec2 v_vTexCoords2;
@@ -23,13 +24,12 @@ var water_vert_shader = `
 			float dispMapOffset1 = texture2D(u_waterDispMap, v_vTexCoords1).g - 0.5;
 			float dispMapOffset2 = texture2D(u_waterDispMap, v_vTexCoords2).g - 0.5;
 
-			// BEGIN TEST
-			float dispMapOffset = (dispMapOffset1 + dispMapOffset2) / 15.0;
-			// END TEST
+			float yDisplacement = (dispMapOffset1 + dispMapOffset2);
 
-			vec4 offsetCoords = vec4(a_vCoords.x, a_vCoords.y + dispMapOffset, a_vCoords.z, 1.0);
+			vec4 offsetCoords = vec4(a_vCoords.x, a_vCoords.y + 0.08 * yDisplacement, a_vCoords.z, 1.0);
 			vec4 camSpacePos = u_mvMatrix * offsetCoords;
 			v_vPos = vec3(camSpacePos);
+			v_vPosWorldSpace = a_vCoords;
 
 			gl_Position = u_pMatrix * camSpacePos;
 		}

@@ -32,8 +32,8 @@ var basic_vert_shader = `
 			v_vTexCoords1 = a_vTexCoords + vec2(u_totalTimeElapsed / 6000.0, 0.0);
 			v_vTexCoords2 = a_vTexCoords + vec2(0.0, u_totalTimeElapsed / 12000.0);
 
-			float yDisplacement = 0.05 * (texture2D(u_groundDispMap, a_vTexCoords).g - 0.5);
-			camSpacePos = u_mvMatrix * vec4(a_vCoords.x, a_vCoords.y + yDisplacement, a_vCoords.z, 1.0);
+			float yDisplacement = (texture2D(u_groundDispMap, a_vTexCoords).g - 0.5);
+			camSpacePos = u_mvMatrix * vec4(a_vCoords.x, a_vCoords.y + 0.05 * yDisplacement, a_vCoords.z, 1.0);
 			gl_Position = u_pMatrix * camSpacePos;
 		}
 	`;
