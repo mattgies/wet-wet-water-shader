@@ -18,11 +18,21 @@
 	<h2 >Matthew Goose and Caroline Wang</h1>
 	
 	<div>
-		<canvas id="glCanvas" width="500px" height="500px"></canvas>
+		<canvas id="glCanvas" width="800px" height="800px"></canvas>
 	</div>
 
-	<img id="water_normal_map" src="texture_maps/Water_002_NORM.jpg" width="0" height="0"></img>
-	<img id="water_displacement_map" src="texture_maps/Water_002_DISP.png" width="0" height="0"></img>
+	<img id="water_normal_map" src="texture_maps/Water_001_SD/Water_001_NORM.jpg" width="0" height="0"></img>
+	<img id="water_displacement_map" src="texture_maps/Water_001_SD/Water_001_DISP.png" width="0" height="0"></img>
+	<img id="ground_color_map" src="texture_maps/Portuguese Flor 001_SD/Portuguese_Floor_001_COLOR.jpg" width="0" height="0"></img>
+	<img id="ground_displacement_map" src="texture_maps/Portuguese Flor 001_SD/Portuguese_Floor_001_DISP.png" width="0" height="0"></img>
+
+	<script src = 'shader_strs/basic_vert_shader.js'></script>
+	<script src = 'shader_strs/basic_frag_shader.js'></script>
+	
+	<script src = 'shader_strs/water_vert_shader.js'></script>
+	<script src = 'shader_strs/water_frag_shader.js'></script>
+
+
 	<script src = 'js_files/webgl-obj-loader.js'></script>
 	<script src = 'js_files/glMatrix-0.9.5.js'></script>
 	<script src = 'meshes/1x1x1_plane.obj.js'></script>

@@ -78,7 +78,7 @@ function createGLContext(canvas) {
   }
 
 
-function setUpMVMatrix(shaderProgram) {
+function updateMVMatrixUniform(shaderProgram) {
 	// uses inverse of the camera's transformations to set up the mvMatrix
 	// that way, all objects get transformed into camera space with the mvMatrix
 	// camera space = (cam at (0, 0, 0) facing down -Z axis)
@@ -102,7 +102,7 @@ function setUpProjMatrix(shaderProgram) {
 }
 
 
-function setUpNMatrix(shaderProgram) {
+function updateNMatrixUniform(shaderProgram) {
 	nMatrix = mat4.inverse(mvMatrix);
 	mat4.transpose(nMatrix);
 	gl.uniformMatrix4fv(shaderProgram.nMatrixUniform, false, nMatrix);
@@ -110,7 +110,7 @@ function setUpNMatrix(shaderProgram) {
 
 
 function setUpLightPos(shaderProgram) {
-	lightPos = vec3.create([0.0, 4.0, 0.0]); // object-space position of the light (converted to cam space in the frag shader)
+	lightPos = vec3.create([0.0, 2.5, 0.0]); // object-space position of the light (converted to cam space in the frag shader)
 	gl.uniform3fv(shaderProgram.lightPosUniform, lightPos);
 }
 
@@ -123,7 +123,20 @@ function updateTotalTimeElapsedUniform(shaderProgram) {
 
 var textures = [];
 function setUpWaterNormalMap(shaderProgram) {
-	image_ids = ["water_normal_map", "water_displacement_map"]
+	// TO ADD A NEW TEXTURE MAP, ALL YOU HAVE TO DO IS A FEW STEPS:
+	// 1. add the image to the index.html file via an image tag
+	// 2. make the width and height of that image tag 0 so that the image doesnt show up on the page
+	// 3. add the id of that image tag to the image_ids array
+	// 4. add a new attribute to the shader program containing the gl.getUniformLocation value for the new uniform's name
+	// 5. add a new uniform1i statement right after the for loop below, containing the next available number
+	// 6. add a new gl.activeTexture/gl.bindTexture set to the very bottom of this function
+	// that's it!
+	image_ids = [
+		"water_normal_map",
+		"water_displacement_map",
+		"ground_color_map",
+		"ground_displacement_map"
+	]
 	
 	for (image_id of image_ids) {
 		var texture = gl.createTexture();
@@ -142,17 +155,22 @@ function setUpWaterNormalMap(shaderProgram) {
 			gl.UNSIGNED_BYTE,
 			document.getElementById(image_id)
 		);
-
 		textures.push(texture);
 	}
 
 	gl.uniform1i(shaderProgram.waterNormalMapUniform, 0);
 	gl.uniform1i(shaderProgram.waterDispMapUniform, 1);
+	gl.uniform1i(shaderProgram.groundColorMapUniform, 2);
+	gl.uniform1i(shaderProgram.groundDispMapUniform, 3);
 
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, textures[0]);
 	gl.activeTexture(gl.TEXTURE1);
 	gl.bindTexture(gl.TEXTURE_2D, textures[1]);
+	gl.activeTexture(gl.TEXTURE2);
+	gl.bindTexture(gl.TEXTURE_2D, textures[2]);
+	gl.activeTexture(gl.TEXTURE3);
+	gl.bindTexture(gl.TEXTURE_2D, textures[3]);
 }
 
 
@@ -175,6 +193,7 @@ function setUpShaderAttribs(shaderProgram) {
 
 
 function setUpShaderUniforms(shaderProgram) {
+	gl.useProgram(shaderProgram);
 	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "u_mvMatrix");
 	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "u_pMatrix");
 	shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "u_nMatrix");
@@ -182,23 +201,28 @@ function setUpShaderUniforms(shaderProgram) {
 	shaderProgram.totalTimeElapsedUniform = gl.getUniformLocation(shaderProgram, "u_totalTimeElapsed");
 	shaderProgram.waterNormalMapUniform = gl.getUniformLocation(shaderProgram, "u_waterNormalMap");
 	shaderProgram.waterDispMapUniform = gl.getUniformLocation(shaderProgram, "u_waterDispMap");
+	shaderProgram.groundColorMapUniform = gl.getUniformLocation(shaderProgram, "u_groundColorMap");
+	shaderProgram.groundDispMapUniform = gl.getUniformLocation(shaderProgram, "u_groundDispMap");
 
-	if (shaderProgram.mvMatrixUniform != -1) {
-		setUpMVMatrix(shaderProgram);
+	if (shaderProgram.mvMatrixUniform != null) {
+		updateMVMatrixUniform(shaderProgram);
 	}
-	if (shaderProgram.pMatrixUniform != -1) {
+	if (shaderProgram.pMatrixUniform != null) {
 		setUpProjMatrix(shaderProgram);
 	}
-	if (shaderProgram.nMatrixUniform != -1) {
-		setUpNMatrix(shaderProgram);
+	if (shaderProgram.nMatrixUniform != null) {
+		updateNMatrixUniform(shaderProgram);
 	}
-	if (shaderProgram.lightPosUniform != -1) {
+	if (shaderProgram.lightPosUniform != null) {
 		setUpLightPos(shaderProgram);
 	}
-	if (shaderProgram.totalTimeElapsedUniform != -1) {
+	if (shaderProgram.totalTimeElapsedUniform != null) {
 		updateTotalTimeElapsedUniform(shaderProgram);
 	}
-	if (shaderProgram.waterNormalMapUniform != -1 && shaderProgram.waterDispMapUniform != -1) {
+	if (shaderProgram.waterNormalMapUniform != null
+		&& shaderProgram.waterDispMapUniform != null
+		&& shaderProgram.groundColorMapUniform != null
+		&& shaderProgram.groundDispMapUniform != null) {
 		setUpWaterNormalMap(shaderProgram);
 	}
 }
@@ -214,8 +238,16 @@ function drawScene() {
 		usesNorms = obj.usesNorms;
 		gl.useProgram(shaderProgram);
 
-		setUpShaderAttribs(shaderProgram);
-		setUpShaderUniforms(shaderProgram);
+		// the only things that can change each frame are:
+		// - the camera position
+		// - the total elapsed time
+		// so all we have to update each frame are the MV Matrix (camera-dependent), N Matrix (camera-dependent), and totalTimeElapsed (time-dependent)
+		// no need to update textures since those stay the same, the uv coordinates for accessing the texutres are just animated :)))
+
+		// this optimization makes it run WAY faster in the browser and no reload-due-to-memory-usage errors :D
+		updateMVMatrixUniform(shaderProgram);
+		updateNMatrixUniform(shaderProgram);
+		updateTotalTimeElapsedUniform(shaderProgram);
 
 		
 		if (usesNorms) {
@@ -236,9 +268,9 @@ function drawScene() {
 }
 
 
-var clearColorR = 0.35;
-var clearColorG = 0.5;
-var clearColorB = 0.7;
+var clearColorR = 0.02;
+var clearColorG = 0.04;
+var clearColorB = 0.08;
 var lastTime = 0;
 var elapsed;
 var rotSpeed = 0.0005;
@@ -250,11 +282,7 @@ function tick() {
 	var timeNow = new Date().getTime();
 	if (lastTime != 0) {
 		elapsed = timeNow - lastTime;
-		// rotAmountY += rotSpeed * elapsed;
-		// if (rotAmountY > Math.PI && rotSpeed > 0 || rotAmountY < Math.PI / 2 && rotSpeed < 0) {
-		// 	rotSpeed = -rotSpeed;
-		// }
-		totalTimeElapsed += elapsed; // defined in the vars section at the very top of this index.js file
+		totalTimeElapsed += elapsed / 2; // defined in the vars section at the very top of this index.js file
 	}
 	lastTime = timeNow;
 
@@ -286,7 +314,7 @@ function mouseDown() {
 }
 
 
-function mouseUp() {
+function mouseDragStop() {
 	dragging = false;
 }
 
@@ -313,8 +341,8 @@ function initGL() {
 	// Initialize the GL context
 	canvas = document.querySelector("#glCanvas");
 	canvas.onmousedown = mouseDown;
-	canvas.onmouseup = mouseUp;
-	canvas.onmouseout = mouseUp;
+	canvas.onmouseup = mouseDragStop;
+	canvas.onmouseout = mouseDragStop;
 	canvas.onmousemove = mouseMove;
 
 
@@ -341,229 +369,19 @@ function initGL() {
 	waterShaderProgram = gl.createProgram();
 
 	// ground shader
-	let vert_shade = `
-		precision mediump float; // had to add this line because using mvMatrix in the fragment shader caused an error bc of differing precision
-
-		uniform mat4 u_mvMatrix;
-		uniform mat4 u_pMatrix;
-		uniform mat4 u_nMatrix;
-		uniform float u_totalTimeElapsed;
-		uniform vec3 u_lightPos;
-
-		uniform sampler2D u_waterNormalMap;
-		uniform sampler2D u_waterDispMap;
-
-		attribute vec3 a_vCoords;
-		attribute vec2 a_vTexCoords;
-
-		varying vec3 v_vPos;
-		varying vec2 v_vTexCoords;
-		varying vec3 v_newIntersect;
-		varying vec3 v_oldIntersect;
-
-		void main() {
-			vec2 texCoordsWithTimeOffset = a_vTexCoords + vec2(u_totalTimeElapsed / 4500.0, u_totalTimeElapsed / 4500.0);
-
-			// SET UP VARIABLES
-			float yDisplacement = texture2D(u_waterDispMap, texCoordsWithTimeOffset).g - 0.5;
-			float waterSurfaceYCoord = 0.808494;
-			float groundPlaneYCoord = -0.368807;
-			float yDistFlatWaterToGround = waterSurfaceYCoord - groundPlaneYCoord;
-
-			vec4 waterSurfaceNormalSample = texture2D(u_waterNormalMap, texCoordsWithTimeOffset);
-			vec3 waterNormal = normalize(vec3(waterSurfaceNormalSample.r, waterSurfaceNormalSample.b, waterSurfaceNormalSample.g));
-
-
-			// CALCULATE INTERSECTIONS
-			vec3 oldlightDirection = vec3(a_vCoords.x, yDistFlatWaterToGround, a_vCoords.z) - u_lightPos;
-			vec3 newlightDirection = vec3(a_vCoords.x, yDistFlatWaterToGround + yDisplacement, a_vCoords.z) - u_lightPos;
-			
-			vec3 oldRefractRay = refract(normalize(oldlightDirection), vec3(0.0, 1.0, 0.0), 1.0 / 1.33);
-			float oldt = (waterSurfaceYCoord - groundPlaneYCoord) / oldRefractRay.y;
-			vec3 oldIntersect = vec3(a_vCoords.x, yDistFlatWaterToGround, a_vCoords.z) + (oldt * oldRefractRay);
-			
-			vec3 newRefractRay = refract(normalize(newlightDirection), waterNormal, 1.0 / 1.33);
-			float newt = (0.808494 - (-0.368807) + yDisplacement) / newRefractRay.y;
-
-			vec3 newIntersect = vec3(a_vCoords.x, 															
-									 0.808494 - (-0.368807) + yDisplacement, 	
-									 a_vCoords.z) + (newt * newRefractRay);									
-
-			vec4 transformed_oldInt = u_mvMatrix * vec4(oldIntersect, 1.0);
-			vec4 transformed_newInt = u_mvMatrix * vec4(newIntersect, 1.0);
-			
-
-			// SET VARYING VALS
-			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0);
-
-			v_vPos = vec3(camSpacePos);
-			v_oldIntersect = vec3(u_pMatrix * transformed_oldInt);
-			v_newIntersect = vec3(u_pMatrix * transformed_newInt);
-			v_vTexCoords = texCoordsWithTimeOffset;
-
-			gl_Position = u_pMatrix * camSpacePos;
-		}
-	`;
-
-	let frag_shade = `
-		#extension GL_OES_standard_derivatives : enable // extension enables use of dFdx and dFdy
-
-		precision mediump float;
-
-		uniform vec3 u_lightPos;
-		uniform mat4 u_mvMatrix;
-		uniform mat4 u_nMatrix;
-		uniform mat4 u_pMatrix;
-		uniform float u_totalTimeElapsed;
-		uniform sampler2D u_waterDispMap;
-
-		varying vec3 v_vPos; // camera-space pos of the fragment, interpolated from cam-space vert positions
-		varying vec2 v_vTexCoords;
-
-		varying vec3 v_newIntersect;
-		varying vec3 v_oldIntersect;
-
-		void main() {
-			vec4 intermed = u_mvMatrix * vec4(u_lightPos, 1.0);
-			vec3 camSpaceLightPos = vec3(intermed);
-
-			// basic diffuse shader implementation
-
-			// vec3 Kd = vec3(1.0, 1.0, 1.0);
-			// float I = 1.0;
-			// float maxDot = max(0.0, dot(v_vNorm, camSpaceLightPos - v_vPos));
-			// float rSquared = length( camSpaceLightPos - v_vPos ) * length( camSpaceLightPos - v_vPos );
-
-			// gl_FragColor = vec4((I / rSquared * maxDot * Kd), 1.0);
-
-			float oldArea = length(dFdx(v_oldIntersect)) * length(dFdy(v_oldIntersect));
-			float newArea = length(dFdx(v_newIntersect)) * length(dFdy(v_newIntersect));
-			float caustic = oldArea / newArea * 0.3;
-
-			gl_FragColor = vec4(0.1, 0.3, 0.5, 1.0);
-
-			gl_FragColor = gl_FragColor + caustic;
-		}
-	`; 
-
-	createShaderProgram(basicShaderProgram, vert_shade, frag_shade);
+	createShaderProgram(basicShaderProgram, basic_vert_shader, basic_frag_shader);
 
 	// water shader
-	vert_shade = `
-		precision mediump float; // had to add this line because using mvMatrix in the fragment shader caused an error bc of differing precision
+	createShaderProgram(waterShaderProgram, water_vert_shader, water_frag_shader);
 
-		uniform mat4 u_mvMatrix;
-		uniform mat4 u_pMatrix;
-		uniform mat4 u_nMatrix;
-		uniform float u_totalTimeElapsed;
-		uniform sampler2D u_waterDispMap;
-
-		attribute vec3 a_vCoords;
-		attribute vec2 a_vTexCoords;
-
-		varying vec3 v_vPos;
-		varying vec2 v_vTexCoords;
-
-		void main() {
-			// TEXTURE COORDINATES
-			vec2 texCoordsWithTimeOffset = a_vTexCoords + vec2(u_totalTimeElapsed / 4500.0, u_totalTimeElapsed / 4500.0);
-			v_vTexCoords = texCoordsWithTimeOffset;
-
-			// OFFSET FROM DISPLACMENT MAP
-			float dispMapOffset = texture2D(u_waterDispMap, texCoordsWithTimeOffset).g - 0.5;
-			vec4 offsetCoords = vec4(a_vCoords.x, a_vCoords.y + 0.5 * dispMapOffset, a_vCoords.z, 1.0);
-			vec4 camSpacePos = u_mvMatrix * offsetCoords;
-			v_vPos = vec3(camSpacePos);
-
-			gl_Position = u_pMatrix * camSpacePos;
-		}
-	`;
-
-
-	frag_shade = `
-		#extension GL_OES_standard_derivatives : enable // extension enables use of dFdx and dFdy
-		precision mediump float;
-
-		uniform vec3 u_lightPos; // light position in world-space coordinates ( needs MV matrix to be converted to cam space)
-		uniform mat4 u_mvMatrix;
-		uniform mat4 u_nMatrix;
-		uniform mat4 u_pMatrix;
-		uniform sampler2D u_waterNormalMap;
-		uniform float u_totalTimeElapsed;
-
-		varying vec3 v_vPos; // camera-space coordinates for position of the current fragment
-		varying vec2 v_vTexCoords; // (u,v) tex coords which have already been adjusted with rotation and time offset
-
-		void main() {
-			vec4 waterSurfaceNormalSample = texture2D(u_waterNormalMap, v_vTexCoords);
-			vec3 waterNormal = normalize(vec3(waterSurfaceNormalSample.r, waterSurfaceNormalSample.b, waterSurfaceNormalSample.g));
-			
-			vec3 lightPosInCamSpace = vec3(u_mvMatrix * vec4(u_lightPos, 1.0));
-			vec3 vi = lightPosInCamSpace - v_vPos;
-
-			float normalized_n_i_dot = dot(waterNormal / length(waterNormal), vi / length(vi));
-
-			if (normalized_n_i_dot > 0.0) {
-				vec3 normalized_o = - v_vPos / length(v_vPos);
-				vec3 normalized_n = waterNormal / length(waterNormal);
-				vec3 normalized_i = vi / length(vi);
-				vec3 normalized_h = (normalized_i + normalized_o) / length(normalized_i + normalized_o);
-
-				float I = 15.0;
-				float vI = I / (pow(length(vi),2.0) / 5.0 + 5.0);
-				float uBeta = 0.2; // line 106 of pa2_webgl.js
-				float uIOR = 1.0; // line 105 of pa2_webgl.js
-				float uAmbient = 0.2; // line 141 of pa2_webgl.js
-				vec3 uDiffuseColor = vec3(0.0/255.0, 85.0/255.0, 162.0/255.0);
-				vec3 uSpecularColor = vec3(1.0, 1.0, 1.0);
-
-				// F(i,h)
-				// Fresnel factor calculation
-				float ff_c = dot(normalized_i, normalized_h);
-				float ff_g = sqrt(pow(uIOR, 2.0) - 1.0 + pow(ff_c, 2.0));
-				float ff_left_term = 0.5 * pow((ff_g - ff_c), 2.0) / pow((ff_g + ff_c), 2.0);
-				float ff_right_term = 1.0 + pow(((ff_c * (ff_g + ff_c) - 1.0) / (ff_c * (ff_g - ff_c) + 1.0)), 2.0);
-				float ff = ff_left_term * ff_right_term;
-
-				// D(h)
-				// GGX normal distribution function
-				float PI = 3.1415926535897932384626433832795;
-				float theta_h = acos(dot(normalized_n, normalized_h)); // angle between n and h; we know normalized_n and normalized_h are both mag 1
-				float d_numerator = pow(uBeta, 2.0);
-				float d_denom = PI * pow(cos(theta_h), 4.0) * pow((pow(uBeta, 2.0) + pow(tan(theta_h), 2.0)), 2.0);
-				float d = d_numerator / d_denom;
-
-				// G(i, o, h)
-				// shadow-masking function of the GGX distribution
-				float theta_i = acos(dot(normalized_n, normalized_i));
-				float G1_i_h = 2.0 / (1.0 + sqrt(1.0 + pow(uBeta, 2.0) * pow(tan(theta_i), 2.0)));
-				float theta_o = acos(dot(normalized_n, normalized_o));
-				float G1_o_h = 2.0 / (1.0 + sqrt(1.0 + pow(uBeta, 2.0) * pow(tan(theta_o), 2.0)));
-				float g_i_o_h = G1_i_h * G1_o_h;
-
-				float left_outer = vI * normalized_n_i_dot;
-				float left_inner_numerator = ff * d * g_i_o_h;
-				float left_inner_denom = 4.0 * dot(normalized_n, normalized_i) * dot(normalized_n, normalized_o);
-				vec3 left_inner = uDiffuseColor + left_inner_numerator / left_inner_denom * uSpecularColor;
-				vec3 left_term = left_outer * left_inner;
-				
-				vec3 right_term = uAmbient * uDiffuseColor;
-				vec3 three_d_frag_color = left_term + right_term;
-				gl_FragColor = vec4(three_d_frag_color, 0.7);
-			}
-			else {
-				float uAmbient = 0.1; // line 141 of pa2_webgl.js
-				vec3 uDiffuseColor = vec3(0.0/255.0, 85.0/255.0, 102.0/255.0);
-				vec3 three_d_frag_color = uAmbient * uDiffuseColor;
-            	gl_FragColor = vec4(three_d_frag_color, 0.7);
-			}
-		}
-	`; 
-
-	createShaderProgram(waterShaderProgram, vert_shade, frag_shade);
+	shaderPrograms = [basicShaderProgram, waterShaderProgram];
+	for (prog of shaderPrograms) {
+		setUpShaderAttribs(prog);
+		setUpShaderUniforms(prog);
+	}
 
 	addObjectToDraw(pool_sides_and_bottom, basicShaderProgram, false);
 	addObjectToDraw(one_plane, waterShaderProgram, true);
 
 	tick();
-  }
+}

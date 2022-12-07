@@ -1,15 +1,22 @@
 body {
-	background-color: rgb(182, 205, 206);
+	background-color: rgb(5.1, 10.2, 20.4);
 	font-family: 'Comic Sans MS', 'Comic Sans';
+	width: 100%;
 }
 
 h1 {
 	font-family: 'Comic Sans MS', 'Comic Sans';
-	color: black;
+	color: white;
 }
 
 h2 {
 	font-family: 'Comic Sans MS', 'Comic Sans';
-	color: black;
+	color: white;
 
+}
+
+canvas {
+	margin: auto;
+	width: 800px;
+	padding: 0;
 }
