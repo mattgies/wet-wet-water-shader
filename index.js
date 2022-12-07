@@ -381,6 +381,7 @@ function initGL() {
 	}
 
 	addObjectToDraw(pool_sides_and_bottom, basicShaderProgram);
+	addObjectToDraw(cat_obj_string, waterShaderProgram);
 	addObjectToDraw(one_plane, waterShaderProgram);
 
 	tick();
