@@ -235,7 +235,6 @@ function drawScene() {
 	for (obj of objsToDraw) {
 		mesh = obj.mesh;
 		shaderProgram = obj.shaderProg;
-		usesNorms = obj.usesNorms;
 		gl.useProgram(shaderProgram);
 
 		// the only things that can change each frame are:
@@ -250,19 +249,22 @@ function drawScene() {
 		updateTotalTimeElapsedUniform(shaderProgram);
 
 		
-		if (usesNorms) {
+		if (shaderProgram.vertexNormalAttribute != -1) {
 			gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normalBuffer);
 			gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, mesh.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 		}
 		
-		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
-		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+		if (shaderProgram.vertexPositionAttribute != -1) {
+			gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
+			gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mesh.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+		}	
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, mesh.textureBuffer);
-		gl.vertexAttribPointer(shaderProgram.vertexTextureAttribute, mesh.textureBuffer.itemSize /* 2 */, gl.FLOAT, false, 0, 0);
+		if (shaderProgram.vertexTextureAttribute != -1) {
+			gl.bindBuffer(gl.ARRAY_BUFFER, mesh.textureBuffer);
+			gl.vertexAttribPointer(shaderProgram.vertexTextureAttribute, mesh.textureBuffer.itemSize /* 2 */, gl.FLOAT, false, 0, 0);
+		}
 		
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
-
 		gl.drawElements(gl.TRIANGLES, mesh.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 	}
 }
@@ -282,7 +284,7 @@ function tick() {
 	var timeNow = new Date().getTime();
 	if (lastTime != 0) {
 		elapsed = timeNow - lastTime;
-		totalTimeElapsed += elapsed / 2; // defined in the vars section at the very top of this index.js file
+		totalTimeElapsed += elapsed; // defined in the vars section at the very top of this index.js file
 	}
 	lastTime = timeNow;
 
@@ -297,7 +299,6 @@ function addObjectToDraw(obj_str, shaderProgram, uses_norms) {
 	objsToDraw.push({
 		"mesh": mesh,
 		"shaderProg": shaderProgram,
-		"usesNorms": uses_norms
 	});
 }
 
@@ -380,8 +381,8 @@ function initGL() {
 		setUpShaderUniforms(prog);
 	}
 
-	addObjectToDraw(pool_sides_and_bottom, basicShaderProgram, false);
-	addObjectToDraw(one_plane, waterShaderProgram, true);
+	addObjectToDraw(pool_sides_and_bottom, basicShaderProgram);
+	addObjectToDraw(one_plane, waterShaderProgram);
 
 	tick();
 }
