@@ -110,7 +110,7 @@ function setUpNMatrix(shaderProgram) {
 
 
 function setUpLightPos(shaderProgram) {
-	lightPos = vec3.create([0.0, 10.0, 0.0]); // object-space position of the light (converted to cam space in the frag shader)
+	lightPos = vec3.create([0.0, 4.0, 0.0]); // object-space position of the light (converted to cam space in the frag shader)
 	gl.uniform3fv(shaderProgram.lightPosUniform, lightPos);
 }
 
@@ -351,7 +351,7 @@ function initGL() {
 		uniform vec3 u_lightPos;
 
 		uniform sampler2D u_waterNormalMap;
-		uniform sampler2D u_waterDispMap; 
+		uniform sampler2D u_waterDispMap;
 
 		attribute vec3 a_vCoords;
 		attribute vec2 a_vTexCoords;
@@ -361,44 +361,47 @@ function initGL() {
 		varying vec3 v_newIntersect;
 		varying vec3 v_oldIntersect;
 
-		void main() {	
+		void main() {
 			vec2 texCoordsWithTimeOffset = a_vTexCoords + vec2(u_totalTimeElapsed / 4500.0, u_totalTimeElapsed / 4500.0);
-			vec2 vTexCoords = texCoordsWithTimeOffset;
 
-			vec3 oldlightDirection = vec3(a_vCoords.x, 0.808494 - (-0.368807), a_vCoords.z) - u_lightPos; // light direction
-			vec3 newlightDirection = vec3(a_vCoords.x, 0.808494 - (-0.368807) + texture2D(u_waterDispMap, vTexCoords).g, a_vCoords.z) - u_lightPos;
-			// texture2D(u_waterNormalMap, vTexCoords) gives the normal at v_vTexCoords as vec4
-			// 0.808494 - (-0.368807)
+			// SET UP VARIABLES
+			float yDisplacement = texture2D(u_waterDispMap, texCoordsWithTimeOffset).g - 0.5;
+			float waterSurfaceYCoord = 0.808494;
+			float groundPlaneYCoord = -0.368807;
+			float yDistFlatWaterToGround = waterSurfaceYCoord - groundPlaneYCoord;
+
+			vec4 waterSurfaceNormalSample = texture2D(u_waterNormalMap, texCoordsWithTimeOffset);
+			vec3 waterNormal = normalize(vec3(waterSurfaceNormalSample.r, waterSurfaceNormalSample.b, waterSurfaceNormalSample.g));
+
+
+			// CALCULATE INTERSECTIONS
+			vec3 oldlightDirection = vec3(a_vCoords.x, yDistFlatWaterToGround, a_vCoords.z) - u_lightPos;
+			vec3 newlightDirection = vec3(a_vCoords.x, yDistFlatWaterToGround + yDisplacement, a_vCoords.z) - u_lightPos;
 			
 			vec3 oldRefractRay = refract(normalize(oldlightDirection), vec3(0.0, 1.0, 0.0), 1.0 / 1.33);
-			// vec3 oldRefractRay = refract(normalize(a_vCoords + vec3(0.0, .808494 - a_vCoords.y, 0.0)), vec3(0.0, 1.0, 0.0), 1.0 / 1.33);
-			float oldt = (0.808494 - (-0.368807)) / oldRefractRay.y;
-			vec3 oldIntersect = vec3(a_vCoords.x, 0.808494 - (-0.368807), a_vCoords.z) + (oldt * oldRefractRay);
-
-			vec3 newNormal = vec3(texture2D(u_waterNormalMap, vTexCoords));
-			if (dot(newlightDirection, newNormal) < 0.0) {
-				newNormal = -1.0 * newNormal;
-			}
+			float oldt = (waterSurfaceYCoord - groundPlaneYCoord) / oldRefractRay.y;
+			vec3 oldIntersect = vec3(a_vCoords.x, yDistFlatWaterToGround, a_vCoords.z) + (oldt * oldRefractRay);
 			
-			vec3 newRefractRay = refract(normalize(newlightDirection), vec3(texture2D(u_waterNormalMap, vTexCoords)), 1.0 / 1.33);
-			// vec3 newRefractRay = refract(normalize(vec3(a_vCoords.x, 0.808494 - (-0.368807) + texture2D(u_waterDispMap, vTexCoords).g, a_vCoords.z)), vec3(texture2D(u_waterNormalMap, vTexCoords)), 1.0 / 1.33);
-			float newt = (0.808494 - (-0.368807) + texture2D(u_waterDispMap, vTexCoords).g) / newRefractRay.y;
+			vec3 newRefractRay = refract(normalize(newlightDirection), waterNormal, 1.0 / 1.33);
+			float newt = (0.808494 - (-0.368807) + yDisplacement) / newRefractRay.y;
 
 			vec3 newIntersect = vec3(a_vCoords.x, 															
-									 0.808494 - (-0.368807) + texture2D(u_waterDispMap, vTexCoords).g, 	
+									 0.808494 - (-0.368807) + yDisplacement, 	
 									 a_vCoords.z) + (newt * newRefractRay);									
 
 			vec4 transformed_oldInt = u_mvMatrix * vec4(oldIntersect, 1.0);
 			vec4 transformed_newInt = u_mvMatrix * vec4(newIntersect, 1.0);
 			
+
+			// SET VARYING VALS
+			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0);
+
+			v_vPos = vec3(camSpacePos);
 			v_oldIntersect = vec3(u_pMatrix * transformed_oldInt);
 			v_newIntersect = vec3(u_pMatrix * transformed_newInt);
-
-			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0);
-			v_vPos = vec3(camSpacePos);
-			gl_Position = u_pMatrix * camSpacePos;
-
 			v_vTexCoords = texCoordsWithTimeOffset;
+
+			gl_Position = u_pMatrix * camSpacePos;
 		}
 	`;
 
@@ -412,7 +415,6 @@ function initGL() {
 		uniform mat4 u_nMatrix;
 		uniform mat4 u_pMatrix;
 		uniform float u_totalTimeElapsed;
-		uniform sampler2D u_waterNormalMap;
 		uniform sampler2D u_waterDispMap;
 
 		varying vec3 v_vPos; // camera-space pos of the fragment, interpolated from cam-space vert positions
@@ -436,9 +438,9 @@ function initGL() {
 
 			float oldArea = length(dFdx(v_oldIntersect)) * length(dFdy(v_oldIntersect));
 			float newArea = length(dFdx(v_newIntersect)) * length(dFdy(v_newIntersect));
-			float caustic = oldArea / newArea * 0.8;
+			float caustic = oldArea / newArea * 0.3;
 
-			gl_FragColor = vec4(0.5, 0.5, 0.5, 1.0);
+			gl_FragColor = vec4(0.1, 0.3, 0.5, 1.0);
 
 			gl_FragColor = gl_FragColor + caustic;
 		}
@@ -468,8 +470,8 @@ function initGL() {
 			v_vTexCoords = texCoordsWithTimeOffset;
 
 			// OFFSET FROM DISPLACMENT MAP
-			vec4 dispMapOffset = texture2D(u_waterDispMap, texCoordsWithTimeOffset);
-			vec4 offsetCoords = vec4(a_vCoords.x, a_vCoords.y + 0.5 * dispMapOffset.y, a_vCoords.z, 1.0);
+			float dispMapOffset = texture2D(u_waterDispMap, texCoordsWithTimeOffset).g - 0.5;
+			vec4 offsetCoords = vec4(a_vCoords.x, a_vCoords.y + 0.5 * dispMapOffset, a_vCoords.z, 1.0);
 			vec4 camSpacePos = u_mvMatrix * offsetCoords;
 			v_vPos = vec3(camSpacePos);
 
@@ -487,32 +489,32 @@ function initGL() {
 		uniform mat4 u_nMatrix;
 		uniform mat4 u_pMatrix;
 		uniform sampler2D u_waterNormalMap;
-		uniform sampler2D u_waterDispMap;
 		uniform float u_totalTimeElapsed;
 
 		varying vec3 v_vPos; // camera-space coordinates for position of the current fragment
 		varying vec2 v_vTexCoords; // (u,v) tex coords which have already been adjusted with rotation and time offset
 
 		void main() {
-			vec3 waterSurfaceNormal = normalize(vec3(u_nMatrix * texture2D(u_waterNormalMap, v_vTexCoords))); // this assumes that the normal map texture has 1.0 opacity (so that the w value is 1.0 for when it's multiplied by the normal matrix)
+			vec4 waterSurfaceNormalSample = texture2D(u_waterNormalMap, v_vTexCoords);
+			vec3 waterNormal = normalize(vec3(waterSurfaceNormalSample.r, waterSurfaceNormalSample.b, waterSurfaceNormalSample.g));
 			
 			vec3 lightPosInCamSpace = vec3(u_mvMatrix * vec4(u_lightPos, 1.0));
 			vec3 vi = lightPosInCamSpace - v_vPos;
 
-			float normalized_n_i_dot = dot(waterSurfaceNormal / length(waterSurfaceNormal), vi / length(vi));
+			float normalized_n_i_dot = dot(waterNormal / length(waterNormal), vi / length(vi));
 
 			if (normalized_n_i_dot > 0.0) {
 				vec3 normalized_o = - v_vPos / length(v_vPos);
-				vec3 normalized_n = waterSurfaceNormal / length(waterSurfaceNormal);
+				vec3 normalized_n = waterNormal / length(waterNormal);
 				vec3 normalized_i = vi / length(vi);
 				vec3 normalized_h = (normalized_i + normalized_o) / length(normalized_i + normalized_o);
 
-				float I = 50.0;
+				float I = 15.0;
 				float vI = I / (pow(length(vi),2.0) / 5.0 + 5.0);
 				float uBeta = 0.2; // line 106 of pa2_webgl.js
 				float uIOR = 1.0; // line 105 of pa2_webgl.js
 				float uAmbient = 0.2; // line 141 of pa2_webgl.js
-				vec3 uDiffuseColor = vec3(0.0/255.0, 85.0/255.0, 102.0/255.0);
+				vec3 uDiffuseColor = vec3(0.0/255.0, 85.0/255.0, 162.0/255.0);
 				vec3 uSpecularColor = vec3(1.0, 1.0, 1.0);
 
 				// F(i,h)
