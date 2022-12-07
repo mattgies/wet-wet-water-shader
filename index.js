@@ -84,10 +84,9 @@ function updateMVMatrixUniform(shaderProgram) {
 	// camera space = (cam at (0, 0, 0) facing down -Z axis)
 	let camTransforms = mat4.create();
 	mat4.identity(camTransforms);
-	mat4.rotateZ(camTransforms, rotAmountXZ);
-	mat4.rotateX(camTransforms, rotAmountXZ);
 	mat4.rotateY(camTransforms, rotAmountY);
-	mat4.translate(camTransforms, [0.0, 0.2, 6.0]);
+	mat4.rotateX(camTransforms, -rotAmountXZ);
+	mat4.translate(camTransforms, [0.0, 0.0, 6.0]);
 
 	mvMatrix = mat4.inverse(camTransforms);
 	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
@@ -277,7 +276,7 @@ var lastTime = 0;
 var elapsed;
 var rotSpeed = 0.0005;
 var rotAmountY = 3 * Math.PI / 4;
-var rotAmountXZ = Math.PI / 12;
+var rotAmountXZ = Math.PI / 8;
 function tick() {
 	requestAnimationFrame(tick);
 
