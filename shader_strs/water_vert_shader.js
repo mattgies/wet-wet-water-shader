@@ -6,6 +6,8 @@ var water_vert_shader = `
 		uniform mat4 u_nMatrix;
 		uniform float u_totalTimeElapsed;
 		uniform sampler2D u_waterDispMap;
+		uniform float u_waterSurfaceDisplacementIntensity;
+		uniform float u_waterTexCoordScale;
 
 		attribute vec3 a_vCoords;
 		attribute vec2 a_vTexCoords;
@@ -17,8 +19,8 @@ var water_vert_shader = `
 
 		void main() {
 			// TEXTURE COORDINATES
-			v_vTexCoords1 = a_vTexCoords + vec2(u_totalTimeElapsed / 6000.0, 0.0);
-			v_vTexCoords2 = a_vTexCoords + vec2(0.0, u_totalTimeElapsed / 12000.0);
+			v_vTexCoords1 = u_waterTexCoordScale * (a_vTexCoords + vec2(u_totalTimeElapsed / 6000.0, 0.0));
+			v_vTexCoords2 = u_waterTexCoordScale * (a_vTexCoords + vec2(0.0, u_totalTimeElapsed / 12000.0));
 
 			// OFFSET FROM DISPLACMENT MAP
 			float dispMapOffset1 = texture2D(u_waterDispMap, v_vTexCoords1).g - 0.5;
@@ -26,7 +28,7 @@ var water_vert_shader = `
 
 			float yDisplacement = (dispMapOffset1 + dispMapOffset2);
 
-			vec4 offsetCoords = vec4(a_vCoords.x, a_vCoords.y + 0.08 * yDisplacement, a_vCoords.z, 1.0);
+			vec4 offsetCoords = vec4(a_vCoords.x, a_vCoords.y + u_waterSurfaceDisplacementIntensity * yDisplacement, a_vCoords.z, 1.0);
 			vec4 camSpacePos = u_mvMatrix * offsetCoords;
 			v_vPos = vec3(camSpacePos);
 			v_vPosWorldSpace = a_vCoords;

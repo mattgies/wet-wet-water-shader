@@ -1,4 +1,3 @@
-
 var gl;
 var canvas;
 var basicShaderProgram;
@@ -78,50 +77,8 @@ function createGLContext(canvas) {
   }
 
 
-function updateMVMatrixUniform(shaderProgram) {
-	// uses inverse of the camera's transformations to set up the mvMatrix
-	// that way, all objects get transformed into camera space with the mvMatrix
-	// camera space = (cam at (0, 0, 0) facing down -Z axis)
-	let camTransforms = mat4.create();
-	mat4.identity(camTransforms);
-	mat4.rotateY(camTransforms, rotAmountY);
-	mat4.rotateX(camTransforms, -rotAmountXZ);
-	mat4.translate(camTransforms, [0.0, 0.0, 6.0]);
-
-	mvMatrix = mat4.inverse(camTransforms);
-	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-}
-
-
-function setUpProjMatrix(shaderProgram) {
-	projMatrix = mat4.create();
-	mat4.identity(projMatrix);
-	mat4.perspective(36, gl.viewportWidth / gl.viewportHeight, 0.1, 1000, projMatrix);
-	gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, projMatrix);
-}
-
-
-function updateNMatrixUniform(shaderProgram) {
-	nMatrix = mat4.inverse(mvMatrix);
-	mat4.transpose(nMatrix);
-	gl.uniformMatrix4fv(shaderProgram.nMatrixUniform, false, nMatrix);
-}
-
-
-function setUpLightPos(shaderProgram) {
-	lightPos = vec3.create([0.5, 3.0, -0.5]); // object-space position of the light (converted to cam space in the frag shader)
-	gl.uniform3fv(shaderProgram.lightPosUniform, lightPos);
-}
-
-
-function updateTotalTimeElapsedUniform(shaderProgram) {
-	gl.uniform1f(shaderProgram.totalTimeElapsedUniform, totalTimeElapsed);
-	gl.uniform1f(shaderProgram.IORRatioUniform, IOR_ratio);
-}
-
-
 var textures = [];
-function setUpWaterNormalMap(shaderProgram) {
+function setUpTextureMaps(shaderProgram) {
 	// TO ADD A NEW TEXTURE MAP, ALL YOU HAVE TO DO IS A FEW STEPS:
 	// 1. add the image to the index.html file via an image tag
 	// 2. make the width and height of that image tag 0 so that the image doesnt show up on the page
@@ -191,6 +148,13 @@ function setUpShaderAttribs(shaderProgram) {
 }
 
 
+var lightIntensity = 1.0;
+var causticsIntensity = 1.0;
+var waterSurfaceDisplacementIntensity = 1.0;
+var waterTextureCoordinateScale = 1.0;
+var groundTextureCoordinateScale = 1.0;
+
+
 function setUpShaderUniforms(shaderProgram) {
 	gl.useProgram(shaderProgram);
 	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "u_mvMatrix");
@@ -202,6 +166,12 @@ function setUpShaderUniforms(shaderProgram) {
 	shaderProgram.waterDispMapUniform = gl.getUniformLocation(shaderProgram, "u_waterDispMap");
 	shaderProgram.groundColorMapUniform = gl.getUniformLocation(shaderProgram, "u_groundColorMap");
 	shaderProgram.groundDispMapUniform = gl.getUniformLocation(shaderProgram, "u_groundDispMap");
+
+	shaderProgram.lightIntensityUniform = gl.getUniformLocation(shaderProgram, "u_lightIntensity");
+	shaderProgram.causticsIntensityUniform = gl.getUniformLocation(shaderProgram, "u_causticsIntensity");
+	shaderProgram.waterSurfaceDisplacementIntensityUniform = gl.getUniformLocation(shaderProgram, "u_waterSurfaceDisplacementIntensity");
+	shaderProgram.waterTextureCoordinateScaleUniform = gl.getUniformLocation(shaderProgram, "u_waterTexCoordScale");
+	shaderProgram.groundTextureCoordinateScaleUniform = gl.getUniformLocation(shaderProgram, "u_groundTexCoordScale");
 
 	if (shaderProgram.mvMatrixUniform != null) {
 		updateMVMatrixUniform(shaderProgram);
@@ -218,11 +188,26 @@ function setUpShaderUniforms(shaderProgram) {
 	if (shaderProgram.totalTimeElapsedUniform != null) {
 		updateTotalTimeElapsedUniform(shaderProgram);
 	}
+	if (shaderProgram.lightIntensityUniform != null) {
+		updateLightIntensityUniform(shaderProgram);
+	}
+	if (shaderProgram.causticsIntensityUniform != null) {
+		updateLightIntensityUniform(shaderProgram);
+	}
+	if (shaderProgram.waterSurfaceDisplacementIntensityUniform != null) {
+		updateWaterSurfaceDisplacementIntensity(shaderProgram);
+	}
+	if (shaderProgram.waterTextureCoordinateScaleUniform != null) {
+		updateWaterTextureCoordinateScaleUniform(shaderProgram);
+	}
+	if (shaderProgram.groundTextureCoordinateScaleUniform != null) {
+		updateGroundTextureCoordinateScaleUniform(shaderProgram);
+	}
 	if (shaderProgram.waterNormalMapUniform != null
 		&& shaderProgram.waterDispMapUniform != null
 		&& shaderProgram.groundColorMapUniform != null
 		&& shaderProgram.groundDispMapUniform != null) {
-		setUpWaterNormalMap(shaderProgram);
+		setUpTextureMaps(shaderProgram);
 	}
 }
 
@@ -246,6 +231,11 @@ function drawScene() {
 		updateMVMatrixUniform(shaderProgram);
 		updateNMatrixUniform(shaderProgram);
 		updateTotalTimeElapsedUniform(shaderProgram);
+		updateLightIntensityUniform(shaderProgram);
+		updateCausitcsIntensity(shaderProgram);
+		updateWaterSurfaceDisplacementIntensity(shaderProgram);
+		updateWaterTextureCoordinateScaleUniform(shaderProgram);
+		updateGroundTextureCoordinateScaleUniform(shaderProgram);
 
 		
 		if (shaderProgram.vertexNormalAttribute != -1) {
@@ -277,15 +267,48 @@ var elapsed;
 var rotSpeed = 0.0005;
 var rotAmountY = 3 * Math.PI / 4;
 var rotAmountXZ = Math.PI / 8;
+var timeScale = 1;
 function tick() {
 	requestAnimationFrame(tick);
 
 	var timeNow = new Date().getTime();
 	if (lastTime != 0) {
 		elapsed = timeNow - lastTime;
-		totalTimeElapsed += elapsed; // defined in the vars section at the very top of this index.js file
+		totalTimeElapsed += timeScale * elapsed; // defined in the vars section at the very top of this index.js file
 	}
 	lastTime = timeNow;
+
+	/*
+	SLIDERS FOR:
+	- time scale
+	- light intensity
+	- resolution scale
+	- caustics intensity
+	- water surface displacement intensity
+	- texture coordinate scale
+	- light position (x, y, z in world space)
+	*/
+	
+	const ts = document.getElementById("time-scale");
+	timeScale = ts.value;
+	const li = document.getElementById("light-intensity");
+	lightIntensity = li.value;
+	const ci = document.getElementById("caustics-intensity");
+	causticsIntensity = ci.value / 3;
+	const wsdi = document.getElementById("water-surface-displacement-intensity");
+	waterSurfaceDisplacementIntensity = wsdi.value / 20;
+	const wtcs = document.getElementById("water-texture-coordinate-scale");
+	waterTextureCoordinateScale = 1 / wtcs.value;
+	const gtcs = document.getElementById("ground-texture-coordinate-scale");
+	groundTextureCoordinateScale = 1 / gtcs.value;
+	
+
+	inputSliders.forEach(sliderElement => {
+		input_elem = sliderElement.children[1];
+		percentOfSliderFull = 100 * (input_elem.value - input_elem.min) / (input_elem.max - input_elem.min);
+		sliderElement.children[1].setAttribute('style', `background-size: ${percentOfSliderFull}% 100%`);
+		sliderElement.children[2].innerHTML = input_elem.value;
+	})
 
 	drawScene();
 }
@@ -336,6 +359,7 @@ function mouseMove(event) {
 }
 
 
+var inputSliders;
 function initGL() {
 	// initGL is called on page load
 	// Initialize the GL context
@@ -344,6 +368,8 @@ function initGL() {
 	canvas.onmouseup = mouseDragStop;
 	canvas.onmouseout = mouseDragStop;
 	canvas.onmousemove = mouseMove;
+
+	inputSliders = document.querySelectorAll("label");
 
 
 	gl = createGLContext(canvas);
@@ -381,7 +407,7 @@ function initGL() {
 	}
 
 	addObjectToDraw(pool_sides_and_bottom, basicShaderProgram);
-	addObjectToDraw(one_plane, waterShaderProgram);
+	addObjectToDraw(water_surface_plane, waterShaderProgram);
 
 	tick();
 }

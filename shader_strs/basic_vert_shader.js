@@ -10,6 +10,9 @@ var basic_vert_shader = `
 		uniform sampler2D u_waterNormalMap;
 		uniform sampler2D u_waterDispMap;
 		uniform sampler2D u_groundDispMap;
+		uniform float u_waterTexCoordScale;
+		uniform float u_groundTexCoordScale;
+
 
 		attribute vec3 a_vCoords;
 		attribute vec2 a_vTexCoords;
@@ -21,18 +24,16 @@ var basic_vert_shader = `
 		varying vec2 v_vTexCoords2;
 
 		void main() {
-			vec2 texCoordsWithTimeOffset = a_vTexCoords + vec2(u_totalTimeElapsed / 4500.0, 0.0);
-
 			// SET VARYING VALS
 			vec4 camSpacePos = u_mvMatrix * vec4(a_vCoords, 1.0);
 
 			v_vPosWorldSpace = a_vCoords;
 			v_vPos = vec3(camSpacePos);
-			v_vTexCoordsOriginal = 0.5 * a_vTexCoords;
-			v_vTexCoords1 = a_vTexCoords + vec2(u_totalTimeElapsed / 6000.0, 0.0);
-			v_vTexCoords2 = a_vTexCoords + vec2(0.0, u_totalTimeElapsed / 12000.0);
+			v_vTexCoordsOriginal = u_groundTexCoordScale * a_vTexCoords;
+			v_vTexCoords1 = u_waterTexCoordScale * (a_vTexCoords + vec2(u_totalTimeElapsed / 6000.0, 0.0));
+			v_vTexCoords2 = u_waterTexCoordScale * (a_vTexCoords + vec2(0.0, u_totalTimeElapsed / 12000.0));
 
-			float yDisplacement = (texture2D(u_groundDispMap, a_vTexCoords).g - 0.5);
+			float yDisplacement = (texture2D(u_groundDispMap, v_vTexCoordsOriginal).g - 0.5);
 			camSpacePos = u_mvMatrix * vec4(a_vCoords.x, a_vCoords.y + 0.05 * yDisplacement, a_vCoords.z, 1.0);
 			gl_Position = u_pMatrix * camSpacePos;
 		}

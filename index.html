@@ -5,8 +5,15 @@
 <head>
 	<meta charset='utf-8'>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Matt Goose and Caro Wang CS112 final</title>
+	<title>Matt Gies and Caro Wang CS112 final</title>
 	<link rel = "stylesheet" href = "styles.css">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+	
+	<style> @import url('https://fonts.googleapis.com/css2?family=Lora:ital@1&display=swap'); </style>
+	
+	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Lora:ital@1&display=swap" rel="stylesheet">
+	<style> @import url('https://fonts.googleapis.com/css2?family=Lora:ital@1&display=swap'); </style>
 
 </head>
 
@@ -15,10 +22,46 @@
 
 <body onload = "initGL()">
 	<h1 >CS112 Final Project: Wet Wet</h1>
-	<h2 >Matthew Goose and Caroline Wang</h1>
-	
+	<h2 >Matthew Gies and Caroline Wang</h1>
+
+	<label id="time-scale-slider">
+		<p>Time Scale</p>
+		<input id="time-scale" type="range" value="1" min="-3" max="3" step="0.001">
+		<p></p>
+	</label>
+	<br>
+	<label id="input-scale-slider">
+		<p>Light Intensity</p>
+		<input id="light-intensity" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
+		<p></p>
+	</label>
+	<br>
+	<label id="input-scale-slider">
+		<p>Caustics Intensity</p>
+		<input id="caustics-intensity" type="range" value="1.0" min="0.0" max="4.0" step="0.001">
+		<p></p>
+	</label>
+	<br>
+	<label id="input-scale-slider">
+		<p>Water Surface Displacement Intensity</p>
+		<input id="water-surface-displacement-intensity" type="range" value="1.0" min="0.0" max="4.0" step="0.001">
+		<p></p>
+	</label>
+	<br>
+	<label id="input-scale-slider">
+		<p>Water Surface Texture Scale</p>
+		<input id="water-texture-coordinate-scale" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
+		<p></p>
+	</label>
+	<br>
+	<label id="input-scale-slider">
+		<p>Ground Surface Texture Scale</p>
+		<input id="ground-texture-coordinate-scale" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
+		<p></p>
+	</label>
+
 	<div>
-		<canvas id="glCanvas" width="8000px" height="8000px"></canvas>
+		<canvas id="glCanvas" width="2000px" height="2000px"></canvas>
 	</div>
 
 	<img id="water_normal_map" src="texture_maps/Water_001_SD/Water_001_NORM.jpg" width="0" height="0"></img>
@@ -32,6 +75,8 @@
 	<script src = 'shader_strs/water_vert_shader.js'></script>
 	<script src = 'shader_strs/water_frag_shader.js'></script>
 
+	<script src = 'update_uniforms.js'></script>
+
 
 	<script src = 'js_files/webgl-obj-loader.js'></script>
 	<script src = 'js_files/glMatrix-0.9.5.js'></script>
@@ -40,7 +85,7 @@
 	<script src = "index.js"></script>
 	<script src = "meshes/bunny_obj.js"></script>
 	<script src = "meshes/bunny_obj copy.js"></script>
-	<script src = "meshes/12221_Cat_v1_l3.obj.js"></script>
+	<script src = "meshes/cat.obj.js"></script>
 	<script src = "models/pool_box.js"></script>
 		
 </body>

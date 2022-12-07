@@ -7,6 +7,7 @@ var water_frag_shader = `
 		uniform mat4 u_nMatrix;
 		uniform sampler2D u_waterNormalMap;
 		uniform float u_totalTimeElapsed;
+		uniform float u_lightIntensity;
 
 		varying vec3 v_vPos; // camera-space coordinates for position of the current fragment
 		varying vec3 v_vPosWorldSpace;
@@ -29,7 +30,7 @@ var water_frag_shader = `
 			vec3 uSpecularColor = vec3(1.0, 1.0, 1.0); // line 140
 			vec3 uDiffuseColor = vec3(0.2392, 0.5216, 0.7765); // line 139 in pa2_webgl.js
 
-			float uLightPower = 8.0;
+			float uLightPower = u_lightIntensity * 8.0;
 			float uExponent = 50.0;
 			
 			if (normalized_n_i_dot > 0.0) {
@@ -45,11 +46,11 @@ var water_frag_shader = `
 				float right_term_as_float = vI * pow(dot(normalized_n, normalized_h), uExponent);
 				vec3 right_term_as_vec = right_term_as_float * uSpecularColor;
 				vec3 three_d_frag_color = left_term + right_term_as_vec;
-				gl_FragColor = vec4(three_d_frag_color, 0.7);
+				gl_FragColor = vec4(three_d_frag_color, 1.0);
 			}
 			else {
 				vec3 three_d_frag_color = uAmbient * uDiffuseColor;
-				gl_FragColor = vec4(three_d_frag_color, 0.7);
+				gl_FragColor = vec4(three_d_frag_color, 1.0);
 			}
 		}
 	`; 
