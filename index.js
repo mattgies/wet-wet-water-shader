@@ -11,7 +11,7 @@ var mesh;
 var mvMatrix; // model-view matrix
 var nMatrix; // normal matrix
 var projMatrix; // projection matrix for MVP transformations
-var lightPos; // position of the light, used as a uniform for shader calculations
+var lightPos = vec3.create([0.0, 3.0, 0.0]); ; // position of the light, used as a uniform for shader calculations
 var totalTimeElapsed = 0; // used for animation of the waves within the vertex shader, so animation speed is consistent regardless of the amt of time for frame draw
 var IOR_ratio = 1.0 / 1.33;
 
@@ -236,6 +236,7 @@ function drawScene() {
 		updateWaterSurfaceDisplacementIntensity(shaderProgram);
 		updateWaterTextureCoordinateScaleUniform(shaderProgram);
 		updateGroundTextureCoordinateScaleUniform(shaderProgram);
+		setUpLightPos(shaderProgram);
 
 		
 		if (shaderProgram.vertexNormalAttribute != -1) {
@@ -292,23 +293,27 @@ function tick() {
 	const ts = document.getElementById("time-scale");
 	timeScale = ts.value;
 	const li = document.getElementById("light-intensity");
-	lightIntensity = li.value;
+	lightIntensity = li.value * 1.4 - 1.0;
 	const ci = document.getElementById("caustics-intensity");
-	causticsIntensity = ci.value / 3;
+	causticsIntensity = ci.value / 2;
 	const wsdi = document.getElementById("water-surface-displacement-intensity");
 	waterSurfaceDisplacementIntensity = wsdi.value / 8;
 	const wtcs = document.getElementById("water-texture-coordinate-scale");
-	waterTextureCoordinateScale = 1 / wtcs.value;
+	waterTextureCoordinateScale = 1.1 / wtcs.value;
 	const gtcs = document.getElementById("ground-texture-coordinate-scale");
-	groundTextureCoordinateScale = 1 / gtcs.value;
+	groundTextureCoordinateScale = 1.1 / gtcs.value;
+	const lpx = document.getElementById("light-position-x");
+	const lpy = document.getElementById("light-position-y");
+	const lpz = document.getElementById("light-position-z");
+	lightPos = vec3.create([Number(lpx.value), Number(lpy.value), Number(lpz.value)]);
 	
 	// bc colors can have += 50 on their vals, they must be between 50 and 205 (inclusive) for accurate gradient
 	const startColorR = 194;
 	const startColorG = 52;
 	const startColorB = 109;
-	const endColorR = 201;
-	const endColorG = 188;
-	const endColorB = 64;
+	const endColorR = 95;
+	const endColorG = 59;
+	const endColorB = 196;
 	inputSliders.forEach(sliderElement => {
 		input_elem = sliderElement.children[2];
 		percentOfSliderFull = 100 * (input_elem.value - input_elem.min) / (input_elem.max - input_elem.min);

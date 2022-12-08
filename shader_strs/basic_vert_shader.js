@@ -30,7 +30,7 @@ var basic_vert_shader = `
 			v_vPosWorldSpace = a_vCoords;
 			v_vPos = vec3(camSpacePos);
 			v_vTexCoordsOriginal = u_groundTexCoordScale * a_vTexCoords;
-			v_vTexCoords1 = u_waterTexCoordScale * (a_vTexCoords + vec2(u_totalTimeElapsed / 6000.0, 0.0));
+			v_vTexCoords1 = 0.2 * u_waterTexCoordScale * (a_vTexCoords + vec2(u_totalTimeElapsed / 6000.0, 0.0));
 			v_vTexCoords2 = u_waterTexCoordScale * (a_vTexCoords + vec2(0.0, u_totalTimeElapsed / 12000.0));
 
 			float yDisplacement = (texture2D(u_groundDispMap, v_vTexCoordsOriginal).g - 0.5);

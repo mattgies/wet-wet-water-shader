@@ -29,7 +29,6 @@ function updateNMatrixUniform(shaderProgram) {
 
 
 function setUpLightPos(shaderProgram) {
-	lightPos = vec3.create([0.5, 3.0, -0.5]); // object-space position of the light (converted to cam space in the frag shader)
 	gl.uniform3fv(shaderProgram.lightPosUniform, lightPos);
 }
 
