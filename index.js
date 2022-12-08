@@ -293,9 +293,9 @@ function tick() {
 	const ts = document.getElementById("time-scale");
 	timeScale = ts.value;
 	const li = document.getElementById("light-intensity");
-	lightIntensity = li.value * 1.4 - 1.0;
+	lightIntensity = li.value * 1.4;
 	const ci = document.getElementById("caustics-intensity");
-	causticsIntensity = ci.value / 2;
+	causticsIntensity = ci.value * 2;
 	const wsdi = document.getElementById("water-surface-displacement-intensity");
 	waterSurfaceDisplacementIntensity = wsdi.value / 8;
 	const wtcs = document.getElementById("water-texture-coordinate-scale");

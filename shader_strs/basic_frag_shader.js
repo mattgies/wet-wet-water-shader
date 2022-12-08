@@ -63,11 +63,13 @@ var basic_frag_shader = `
 			float caustic = oldArea / newArea;
 			
 			vec3 Kd = vec3(12.0/255.0, 103.0/255.0, 167.0/255.0);
-			float I = u_lightIntensity * 2.8;
+			float I = u_lightIntensity * 8.0;
 			vec3 v_vNorm = waterNormal;
 			float maxDot = max(0.0, dot(vec3(0.0, 1.0, 0.0), normalize(u_lightPos - v_vPosWorldSpace)));
 			float rSquared = length ( newt * newRefractRay.y ) * length ( newt * newRefractRay.y );
 			rSquared = length(u_lightPos - v_vPosWorldSpace);
+			rSquared = length(newIntersect - vec3(v_vPosWorldSpace.x, yDistFlatWaterToGround + yDisplacement, v_vPosWorldSpace.z)) + length(u_lightPos - vec3(v_vPosWorldSpace.x, yDistFlatWaterToGround + yDisplacement, v_vPosWorldSpace.z));
+			rSquared = rSquared * rSquared;
             
             gl_FragColor = 1.4 * texture2D(u_groundColorMap, v_vTexCoordsOriginal);
 			gl_FragColor = gl_FragColor * vec4((I / rSquared * maxDot * Kd), 1.0); // multiplicative blending between base colors
