@@ -296,18 +296,29 @@ function tick() {
 	const ci = document.getElementById("caustics-intensity");
 	causticsIntensity = ci.value / 3;
 	const wsdi = document.getElementById("water-surface-displacement-intensity");
-	waterSurfaceDisplacementIntensity = wsdi.value / 20;
+	waterSurfaceDisplacementIntensity = wsdi.value / 8;
 	const wtcs = document.getElementById("water-texture-coordinate-scale");
 	waterTextureCoordinateScale = 1 / wtcs.value;
 	const gtcs = document.getElementById("ground-texture-coordinate-scale");
 	groundTextureCoordinateScale = 1 / gtcs.value;
 	
-
+	// bc colors can have += 50 on their vals, they must be between 50 and 205 (inclusive) for accurate gradient
+	const startColorR = 194;
+	const startColorG = 52;
+	const startColorB = 109;
+	const endColorR = 201;
+	const endColorG = 188;
+	const endColorB = 64;
 	inputSliders.forEach(sliderElement => {
-		input_elem = sliderElement.children[1];
+		input_elem = sliderElement.children[2];
 		percentOfSliderFull = 100 * (input_elem.value - input_elem.min) / (input_elem.max - input_elem.min);
-		sliderElement.children[1].setAttribute('style', `background-size: ${percentOfSliderFull}% 100%`);
-		sliderElement.children[2].innerHTML = input_elem.value;
+		let new_style = `background-size: ${percentOfSliderFull}% 100%;`;
+		newR = startColorR * (100 - percentOfSliderFull) / 100 + endColorR * percentOfSliderFull / 100;
+		newG = startColorG * (100 - percentOfSliderFull) / 100 + endColorG * percentOfSliderFull / 100;
+		newB = startColorB * (100 - percentOfSliderFull) / 100 + endColorB * percentOfSliderFull / 100;
+		new_style += `background-image: linear-gradient(to right, rgb(${newR - 50}, ${newG - 50}, ${newB - 50}), rgb(${newR + 50}, ${newG + 50}, ${newB + 50}));`;
+		sliderElement.children[2].setAttribute('style', new_style);
+		sliderElement.children[3].innerHTML = input_elem.value;
 	})
 
 	drawScene();

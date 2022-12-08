@@ -6,7 +6,7 @@ function updateMVMatrixUniform(shaderProgram) {
 	mat4.identity(camTransforms);
 	mat4.rotateY(camTransforms, rotAmountY);
 	mat4.rotateX(camTransforms, -rotAmountXZ);
-	mat4.translate(camTransforms, [0.0, 0.0, 6.0]);
+	mat4.translate(camTransforms, [0.0, 0.0, 5.5]);
 
 	mvMatrix = mat4.inverse(camTransforms);
 	gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);

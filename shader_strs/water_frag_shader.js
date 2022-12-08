@@ -46,11 +46,11 @@ var water_frag_shader = `
 				float right_term_as_float = vI * pow(dot(normalized_n, normalized_h), uExponent);
 				vec3 right_term_as_vec = right_term_as_float * uSpecularColor;
 				vec3 three_d_frag_color = left_term + right_term_as_vec;
-				gl_FragColor = vec4(three_d_frag_color, 1.0);
+				gl_FragColor = vec4(three_d_frag_color, 0.9);
 			}
 			else {
 				vec3 three_d_frag_color = uAmbient * uDiffuseColor;
-				gl_FragColor = vec4(three_d_frag_color, 1.0);
+				gl_FragColor = vec4(three_d_frag_color, 0.9);
 			}
 		}
 	`; 

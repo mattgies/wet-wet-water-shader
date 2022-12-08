@@ -11,9 +11,6 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 	
 	<style> @import url('https://fonts.googleapis.com/css2?family=Lora:ital@1&display=swap'); </style>
-	
-	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Lora:ital@1&display=swap" rel="stylesheet">
-	<style> @import url('https://fonts.googleapis.com/css2?family=Lora:ital@1&display=swap'); </style>
 
 </head>
 
@@ -24,45 +21,54 @@
 	<h1 >CS112 Final Project: Wet Wet</h1>
 	<h2 >Matthew Gies and Caroline Wang</h1>
 
-	<label id="time-scale-slider">
-		<p>Time Scale</p>
-		<input id="time-scale" type="range" value="1" min="-3" max="3" step="0.001">
-		<p></p>
-	</label>
-	<br>
-	<label id="input-scale-slider">
-		<p>Light Intensity</p>
-		<input id="light-intensity" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
-		<p></p>
-	</label>
-	<br>
-	<label id="input-scale-slider">
-		<p>Caustics Intensity</p>
-		<input id="caustics-intensity" type="range" value="1.0" min="0.0" max="4.0" step="0.001">
-		<p></p>
-	</label>
-	<br>
-	<label id="input-scale-slider">
-		<p>Water Surface Displacement Intensity</p>
-		<input id="water-surface-displacement-intensity" type="range" value="1.0" min="0.0" max="4.0" step="0.001">
-		<p></p>
-	</label>
-	<br>
-	<label id="input-scale-slider">
-		<p>Water Surface Texture Scale</p>
-		<input id="water-texture-coordinate-scale" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
-		<p></p>
-	</label>
-	<br>
-	<label id="input-scale-slider">
-		<p>Ground Surface Texture Scale</p>
-		<input id="ground-texture-coordinate-scale" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
-		<p></p>
-	</label>
-
-	<div>
+	<section class="canvas-and-sliders">
 		<canvas id="glCanvas" width="2000px" height="2000px"></canvas>
-	</div>
+
+		<br>
+		<section class="sliders">
+			<label id="time-scale-slider">
+				<p>Time Scale</p>
+				<br>
+				<input id="time-scale" type="range" value="1" min="-3" max="3" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Light Intensity</p>
+				<br>
+				<input id="light-intensity" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Caustics Intensity</p>
+				<br>
+				<input id="caustics-intensity" type="range" value="1.0" min="0.0" max="4.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Water Surface Displacement Intensity</p>
+				<br>
+				<input id="water-surface-displacement-intensity" type="range" value="1.0" min="0.0" max="4.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Water Surface Texture Scale</p>
+				<br>
+				<input id="water-texture-coordinate-scale" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Ground Surface Texture Scale</p>
+				<br>
+				<input id="ground-texture-coordinate-scale" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
+				<p></p>
+			</label>
+		</section>
+	</section>
 
 	<img id="water_normal_map" src="texture_maps/Water_001_SD/Water_001_NORM.jpg" width="0" height="0"></img>
 	<img id="water_displacement_map" src="texture_maps/Water_001_SD/Water_001_DISP.png" width="0" height="0"></img>
