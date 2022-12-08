@@ -7,7 +7,6 @@ var basic_vert_shader = `
 		uniform float u_totalTimeElapsed;
 		uniform vec3 u_lightPos;
 
-		uniform sampler2D u_waterNormalMap;
 		uniform sampler2D u_waterDispMap;
 		uniform sampler2D u_groundDispMap;
 		uniform float u_waterTexCoordScale;

@@ -18,8 +18,8 @@ var water_frag_shader = `
 			vec4 waterSurfaceNorm1 = texture2D(u_waterNormalMap, v_vTexCoords1); // world-space
 			vec4 waterSurfaceNorm2 = texture2D(u_waterNormalMap, v_vTexCoords2); // world-space
 
-			vec3 wSN1CorrectDirs = normalize(waterSurfaceNorm1.rbg); // world-space
-			vec3 wSN2CorrectDirs = normalize(waterSurfaceNorm2.rbg); // world-space
+			vec3 wSN1CorrectDirs = normalize(waterSurfaceNorm1.rbg - vec3(0.5)); // world-space
+			vec3 wSN2CorrectDirs = normalize(waterSurfaceNorm2.rbg - vec3(0.5)); // world-space
 
 			vec3 worldSpaceNormal = normalize(wSN1CorrectDirs + wSN2CorrectDirs);
 
@@ -32,7 +32,7 @@ var water_frag_shader = `
 			vec3 uSpecularColor = vec3(1.0, 1.0, 1.0); // line 140
 			vec3 uDiffuseColor = vec3(0.2392, 0.5216, 0.7765); // line 139 in pa2_webgl.js
 
-			float uLightPower = u_lightIntensity * 12.0;
+			float uLightPower = u_lightIntensity * 7.0;
 			float uExponent = 5.0;
 
 

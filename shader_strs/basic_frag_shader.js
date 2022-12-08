@@ -34,10 +34,10 @@ var basic_frag_shader = `
 			vec4 waterSurfaceNorm1 = texture2D(u_waterNormalMap, v_vTexCoords1);
 			vec4 waterSurfaceNorm2 = texture2D(u_waterNormalMap, v_vTexCoords2);
 
-			vec3 wSN1CorrectDirs = waterSurfaceNorm1.rbg;
-			vec3 wSN2CorrectDirs = waterSurfaceNorm2.rbg;
+			vec3 wSN1CorrectDirs = normalize(waterSurfaceNorm1.rbg - vec3(0.5));
+			vec3 wSN2CorrectDirs = normalize(waterSurfaceNorm2.rbg - vec3(0.5));
 
-			vec3 waterNormal = normalize(vec3(wSN1CorrectDirs + wSN2CorrectDirs));
+			vec3 waterNormal = normalize(wSN1CorrectDirs + wSN2CorrectDirs);
 
 
 			// CALCULATE INTERSECTIONS
@@ -66,10 +66,8 @@ var basic_frag_shader = `
 			float I = u_lightIntensity * 8.0;
 			vec3 v_vNorm = waterNormal;
 			float maxDot = max(0.0, dot(vec3(0.0, 1.0, 0.0), normalize(u_lightPos - v_vPosWorldSpace)));
-			float rSquared = length ( newt * newRefractRay.y ) * length ( newt * newRefractRay.y );
-			rSquared = length(u_lightPos - v_vPosWorldSpace);
-			rSquared = length(newIntersect - vec3(v_vPosWorldSpace.x, yDistFlatWaterToGround + yDisplacement, v_vPosWorldSpace.z)) + length(u_lightPos - vec3(v_vPosWorldSpace.x, yDistFlatWaterToGround + yDisplacement, v_vPosWorldSpace.z));
-			rSquared = rSquared * rSquared;
+			float r = length(newIntersect - vec3(v_vPosWorldSpace.x, yDistFlatWaterToGround + yDisplacement, v_vPosWorldSpace.z)) + length(u_lightPos - vec3(v_vPosWorldSpace.x, yDistFlatWaterToGround + yDisplacement, v_vPosWorldSpace.z));
+			float rSquared = r * r;
             
             gl_FragColor = 1.4 * texture2D(u_groundColorMap, v_vTexCoordsOriginal);
 			gl_FragColor = gl_FragColor * vec4((I / rSquared * maxDot * Kd), 1.0); // multiplicative blending between base colors
