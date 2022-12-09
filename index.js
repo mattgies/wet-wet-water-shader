@@ -9,7 +9,6 @@ var vertexColorBuffer;
 var objsToDraw = []; // collection of OBJ.Mesh objects with initialized buffers which can be used to draw
 var mesh;
 var mvMatrix; // model-view matrix
-var nMatrix; // normal matrix
 var projMatrix; // projection matrix for MVP transformations
 var lightPos = vec3.create([0.0, 3.0, 0.0]); ; // position of the light, used as a uniform for shader calculations
 var totalTimeElapsed = 0; // used for animation of the waves within the vertex shader, so animation speed is consistent regardless of the amt of time for frame draw
@@ -159,7 +158,6 @@ function setUpShaderUniforms(shaderProgram) {
 	gl.useProgram(shaderProgram);
 	shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "u_mvMatrix");
 	shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "u_pMatrix");
-	shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "u_nMatrix");
 	shaderProgram.lightPosUniform = gl.getUniformLocation(shaderProgram, "u_lightPos");
 	shaderProgram.totalTimeElapsedUniform = gl.getUniformLocation(shaderProgram, "u_totalTimeElapsed");
 	shaderProgram.waterNormalMapUniform = gl.getUniformLocation(shaderProgram, "u_waterNormalMap");
@@ -178,9 +176,6 @@ function setUpShaderUniforms(shaderProgram) {
 	}
 	if (shaderProgram.pMatrixUniform != null) {
 		setUpProjMatrix(shaderProgram);
-	}
-	if (shaderProgram.nMatrixUniform != null) {
-		updateNMatrixUniform(shaderProgram);
 	}
 	if (shaderProgram.lightPosUniform != null) {
 		setUpLightPos(shaderProgram);
@@ -229,7 +224,6 @@ function drawScene() {
 
 		// this optimization makes it run WAY faster in the browser and no reload-due-to-memory-usage errors :D
 		updateMVMatrixUniform(shaderProgram);
-		updateNMatrixUniform(shaderProgram);
 		updateTotalTimeElapsedUniform(shaderProgram);
 		updateLightIntensityUniform(shaderProgram);
 		updateCausitcsIntensity(shaderProgram);

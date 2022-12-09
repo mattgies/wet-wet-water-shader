@@ -21,13 +21,6 @@ function setUpProjMatrix(shaderProgram) {
 }
 
 
-function updateNMatrixUniform(shaderProgram) {
-	nMatrix = mat4.inverse(mvMatrix);
-	mat4.transpose(nMatrix);
-	gl.uniformMatrix4fv(shaderProgram.nMatrixUniform, false, nMatrix);
-}
-
-
 function setUpLightPos(shaderProgram) {
 	gl.uniform3fv(shaderProgram.lightPosUniform, lightPos);
 }

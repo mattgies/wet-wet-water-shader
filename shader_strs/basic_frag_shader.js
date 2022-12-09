@@ -5,9 +5,6 @@ var basic_frag_shader = `
 
 		uniform vec3 u_lightPos;
 		uniform mat4 u_mvMatrix;
-		uniform mat4 u_nMatrix;
-		uniform mat4 u_pMatrix;
-		uniform float u_totalTimeElapsed;
 		uniform float u_lightIntensity;
 		uniform float u_causticsIntensity;
 		uniform sampler2D u_waterNormalMap;
@@ -15,11 +12,10 @@ var basic_frag_shader = `
         uniform sampler2D u_groundColorMap;
 		uniform float u_waterSurfaceDisplacementIntensity;
 
-		varying vec3 v_vPos; // camera-space pos of the fragment, interpolated from cam-space vert positions
+		varying vec3 v_vPosWorldSpace;
 		varying vec2 v_vTexCoordsOriginal;
         varying vec2 v_vTexCoords1;
 		varying vec2 v_vTexCoords2;
-		varying vec3 v_vPosWorldSpace;
 
 		void main() {
 			// SET UP VARIABLES
@@ -64,7 +60,6 @@ var basic_frag_shader = `
 			
 			vec3 Kd = vec3(12.0/255.0, 103.0/255.0, 167.0/255.0);
 			float I = u_lightIntensity * 8.0;
-			vec3 v_vNorm = waterNormal;
 			float maxDot = max(0.0, dot(vec3(0.0, 1.0, 0.0), normalize(u_lightPos - v_vPosWorldSpace)));
 			float r = length(newIntersect - vec3(v_vPosWorldSpace.x, yDistFlatWaterToGround + yDisplacement, v_vPosWorldSpace.z)) + length(u_lightPos - vec3(v_vPosWorldSpace.x, yDistFlatWaterToGround + yDisplacement, v_vPosWorldSpace.z));
 			float rSquared = r * r;

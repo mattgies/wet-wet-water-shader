@@ -3,9 +3,8 @@ var water_vert_shader = `
 
 		uniform mat4 u_mvMatrix;
 		uniform mat4 u_pMatrix;
-		uniform mat4 u_nMatrix;
-		uniform float u_totalTimeElapsed;
 		uniform sampler2D u_waterDispMap;
+		uniform float u_totalTimeElapsed;
 		uniform float u_waterSurfaceDisplacementIntensity;
 		uniform float u_waterTexCoordScale;
 
