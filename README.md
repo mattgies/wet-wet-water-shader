@@ -1,8 +1,8 @@
 # Matt Goose and Caro Wang CS112 Final Project
 Rendering Water Caustics using WebGL and 3D objects made in Blender  
 
-## IMPORTANT SETUP BEFORE RENDERING
-You must initialize an http server, otherwise the textures won't work and the canvas will not render at all  
+## IMPORTANT SETUP BEFORE RENDERING LOCALLY
+In order to run the simulation locally, you must initialize an http server, otherwise the textures won't work and the canvas will not render at all  
   
 For Mac and Linux, run  
   
@@ -32,10 +32,9 @@ in your browser where "####" is the port number specified by your terminal
 
 ## Credits
 [Water Texture Maps](https://3dtextures.me/2017/12/28/water-001/) \
-[Ground Texture Maps](https://3dtextures.me/2017/12/26/portuguese-flooring-001/) 
+[Ground Texture Maps](https://3dtextures.me/2017/12/26/portuguese-flooring-001/)  
+webgl-obj-loader.js and glMatrix-0.9.5.js in js_files borrowed from helper files in PA2  
+&emsp; -> an extra vec3.abs() method had to be added to glMatrix-0.9.5.js 
 
-## TODO
-- read into height field water simulations
-- read into water caustics equations
-- implement snell's law for light refraction (gl.refract)
+
 
