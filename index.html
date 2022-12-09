@@ -5,8 +5,12 @@
 <head>
 	<meta charset='utf-8'>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Matt Goose and Caro Wang CS112 final</title>
+	<title>Matt Gies and Caro Wang CS112 final</title>
 	<link rel = "stylesheet" href = "styles.css">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+	
+	<style> @import url('https://fonts.googleapis.com/css2?family=Lora:ital@1&display=swap'); </style>
 
 </head>
 
@@ -15,20 +19,100 @@
 
 <body onload = "initGL()">
 	<h1 >CS112 Final Project: Wet Wet</h1>
-	<h2 >Matthew Goose and Caroline Wang</h1>
-	
-	<div>
-		<canvas id="glCanvas" width="500px" height="500px"></canvas>
-	</div>
+	<h2 >Matthew Gies and Caroline Wang</h1>
 
-	<img id="water_normal_map" src="texture_maps/Water_002_NORM.jpg" width="0" height="0"></img>
-	<img id="water_displacement_map" src="texture_maps/Water_002_DISP.png" width="0" height="0"></img>
+	<section class="canvas-and-sliders">
+		<canvas id="glCanvas" width="2000px" height="2000px"></canvas>
+
+		<br>
+		<section class="sliders">
+			<label id="time-scale-slider">
+				<p>Time Scale</p>
+				<br>
+				<input id="time-scale" type="range" value="1" min="-3" max="3" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Light Intensity</p>
+				<br>
+				<input id="light-intensity" type="range" value="1.0" min="0.0" max="2.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Caustics Intensity</p>
+				<br>
+				<input id="caustics-intensity" type="range" value="1.0" min="0.0" max="4.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Water Surface Displacement Intensity</p>
+				<br>
+				<input id="water-surface-displacement-intensity" type="range" value="1.0" min="0.0" max="4.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Water Surface Texture Scale</p>
+				<br>
+				<input id="water-texture-coordinate-scale" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Ground Surface Texture Scale</p>
+				<br>
+				<input id="ground-texture-coordinate-scale" type="range" value="1.0" min="0.5" max="2.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Light Pos X</p>
+				<br>
+				<input id="light-position-x" type="range" value="0.0" min="-2.0" max="2.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Light Pos Y</p>
+				<br>
+				<input id="light-position-y" type="range" value="3.0" min="0.0" max="6.0" step="0.001">
+				<p></p>
+			</label>
+			<br>
+			<label id="input-scale-slider">
+				<p>Light Pos Z</p>
+				<br>
+				<input id="light-position-z" type="range" value="0.0" min="-2.0" max="2.0" step="0.001">
+				<p></p>
+			</label>
+		</section>
+	</section>
+
+	<img id="water_normal_map" src="texture_maps/Water_001_SD/Water_001_NORM.jpg" width="0" height="0"></img>
+	<img id="water_displacement_map" src="texture_maps/Water_001_SD/Water_001_DISP.png" width="0" height="0"></img>
+	<img id="ground_color_map" src="texture_maps/Portuguese Flor 001_SD/Portuguese_Floor_001_COLOR.jpg" width="0" height="0"></img>
+	<img id="ground_displacement_map" src="texture_maps/Portuguese Flor 001_SD/Portuguese_Floor_001_DISP.png" width="0" height="0"></img>
+
+	<script src = 'shader_strs/basic_vert_shader.js'></script>
+	<script src = 'shader_strs/basic_frag_shader.js'></script>
+	
+	<script src = 'shader_strs/water_vert_shader.js'></script>
+	<script src = 'shader_strs/water_frag_shader.js'></script>
+
+	<script src = 'update_uniforms.js'></script>
+
+
 	<script src = 'js_files/webgl-obj-loader.js'></script>
 	<script src = 'js_files/glMatrix-0.9.5.js'></script>
 	<script src = 'meshes/1x1x1_plane.obj.js'></script>
 	<script src = 'meshes/pool_sides_and_bottom.obj.js'></script>
 	<script src = "index.js"></script>
 	<script src = "meshes/bunny_obj.js"></script>
+	<script src = "meshes/bunny_obj copy.js"></script>
+	<script src = "meshes/cat.obj.js"></script>
 	<script src = "models/pool_box.js"></script>
 		
 </body>

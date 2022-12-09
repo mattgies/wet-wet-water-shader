@@ -1,4 +1,4 @@
-var one_plane = `
+var water_surface_plane = `
 # Blender v2.93.6 OBJ File: ''
 # www.blender.org
 mtllib subdiv_pool_plane.mtl

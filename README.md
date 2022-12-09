@@ -29,6 +29,11 @@ in your browser where "####" is the port number specified by your terminal
 ** [Alpha Blending for Transparency](http://learnwebgl.brown37.net/11_advanced_rendering/alpha_blending.html)
 
 
+
+## Credits
+[Water Texture Maps](https://3dtextures.me/2017/12/28/water-001/) \
+[Ground Texture Maps](https://3dtextures.me/2017/12/26/portuguese-flooring-001/) 
+
 ## TODO
 - read into height field water simulations
 - read into water caustics equations
