@@ -1,7 +1,7 @@
 # Matt Gies and Caro Wang CS112 Final Project: Realistic Water Shader in WebGL
 
 ## Online Access via GitHub Pages
-[https://mattgies.github.io/cs112-final/](https://mattgies.github.io/cs112-final/)
+[https://mattgies.github.io/wet-wet-water-shader/](https://mattgies.github.io/wet-wet-water-shader/)
 
 ---
 
